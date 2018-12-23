@@ -21,7 +21,7 @@
     using Microsoft.Extensions.Options;
     using Microsoft.IdentityModel.Tokens;
 
-    internal class UserService : IUserService
+    public class UserService : IUserService
     {
         private const int TokenExpiry = 30;
         private readonly IGametekiDbContext context;

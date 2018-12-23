@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>netcoreapp2.2</TargetFrameworks>
     <PackageId>CrimsonDev.Gameteki.Api</PackageId>
-    <Version>1.0.0</Version>
+    <Version>1.0.1</Version>
     <Authors>Stuart Walsh</Authors>
     <Company>Crimson Development Limited</Company>
     <PackageDescription>Base Api framework for games hosted using the gameteki platform</PackageDescription>
