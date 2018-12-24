@@ -29,7 +29,6 @@
         [ExcludeFromCodeCoverage]
         public static void AddGametekiBase(this IServiceCollection services, IConfiguration configuration)
         {
-            var apiAssembly = typeof(AccountController).GetTypeInfo().Assembly;
             var generalOptions = new GametekiApiOptions();
             var tokens = configuration.GetSection("Tokens").Get<AuthTokenOptions>();
 
@@ -44,7 +43,6 @@
                 services.AddDbContext<GametekiDbContext>(settings => settings.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
             }
 
-            services.AddMvc().AddApplicationPart(apiAssembly);
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1).AddJsonOptions(
                 options =>
                 {

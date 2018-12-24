@@ -13,7 +13,7 @@
     using Microsoft.Extensions.Logging;
 
     [ApiController]
-    internal class NewsController : Controller
+    public class NewsController : Controller
     {
         private readonly INewsService newsService;
         private readonly IUserService userService;

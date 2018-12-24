@@ -10,7 +10,7 @@
     using Microsoft.AspNetCore.Mvc;
 
     [ApiController]
-    internal class UserController : Controller
+    public class UserController : Controller
     {
         private readonly IUserService userService;
 
