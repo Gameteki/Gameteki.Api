@@ -8,12 +8,12 @@ node {
         sh(script: "dotnet build -c Release", returnStdout: true)
     }
 
-    stage('package') {
-        sh(script: "dotnet pack -c Release /p:Version=1.0.0.${BUILD_NUMBER} --include-symbols -p:SymbolPackageFormat=snupkg", returnStdout: true)
-    }
-
     stage('tests') {
         sh(script: "dotnet test -c Release --no-build", returnStdout: true, failOnError: true)
+    }
+
+    stage('package') {
+        sh(script: "dotnet pack -c Release /p:Version=1.0.0.${BUILD_NUMBER} --include-symbols -p:SymbolPackageFormat=snupkg", returnStdout: true)
     }
 
     stage('deploy') {
