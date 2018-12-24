@@ -13,7 +13,7 @@ node {
     }
 
     stage('tests') {
-        sh(script: "dotnet test -c Release --no-build", returnStdout: true, failOnError: true
+        sh(script: "dotnet test -c Release --no-build", returnStdout: true, failOnError: true)
     }
 
     stage('deploy') {
