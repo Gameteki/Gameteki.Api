@@ -27,7 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="CrimsonDev.Gameteki.Data" Version="1.0.0.7" />
+    <PackageReference Include="CrimsonDev.Gameteki.Data" Version="1.0.0.16" />
     <PackageReference Include="CrimsonDev.Gameteki.StyleCop.Rules" Version="1.0.0.12" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="2.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="2.2.0" />
