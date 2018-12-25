@@ -326,16 +326,16 @@
                 throw new ArgumentNullException(nameof(user));
             }
 
-            return AddBlockListEntryInternalAsync(user, username);
-        }
-
-        public async Task<bool> AddBlockListEntryInternalAsync(GametekiUser user, string username)
-        {
             if (username == null)
             {
                 throw new ArgumentNullException(nameof(username));
             }
 
+            return AddBlockListEntryInternalAsync(user, username);
+        }
+
+        public async Task<bool> AddBlockListEntryInternalAsync(GametekiUser user, string username)
+        {
             var blockListEntry = new BlockListEntry
             {
                 BlockedUser = username,
