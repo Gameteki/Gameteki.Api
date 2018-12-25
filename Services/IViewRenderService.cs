@@ -5,7 +5,7 @@
 
     public interface IViewRenderService
     {
-        Task<string> RenderToStringAsync<T>(string viewName, T model)
+        Task<string> RenderToStringAsync<T>(string pageName, T model)
             where T : PageModel;
     }
 }

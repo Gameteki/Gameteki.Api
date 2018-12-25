@@ -22,7 +22,7 @@
         Task<bool> RemoveBlockListEntryAsync(GametekiUser user, string username);
         Task<IdentityResult> UpdateUserAsync(GametekiUser user, string existingPassword = null, string newPassword = null);
         Task<bool> ClearRefreshTokensAsync(GametekiUser user);
-        Task<bool> LogoutUserAsync(string requestToken, string requestRefreshToken);
+        Task<bool> LogoutUserAsync(string token, string refreshToken);
         Task<bool> UpdatePermissionsAsync(GametekiUser user, Permissions newPermissions);
     }
 }

@@ -60,20 +60,20 @@
             return await context.Users.AnyAsync(u => u.Email.Equals(email, StringComparison.InvariantCultureIgnoreCase));
         }
 
-        public async Task<IdentityResult> RegisterUserAsync(GametekiUser newUser, string password)
+        public async Task<IdentityResult> RegisterUserAsync(GametekiUser user, string password)
         {
             try
             {
-                var result = await userManager.CreateAsync(newUser, password);
+                var result = await userManager.CreateAsync(user, password);
                 if (!result.Succeeded)
                 {
-                    logger.LogError($"Failed to register user '{newUser.UserName}': {result.Errors.Aggregate(string.Empty, (prev, error) => prev + $" ({error.Code}) - {error.Description}")}");
+                    logger.LogError($"Failed to register user '{user.UserName}': {result.Errors.Aggregate(string.Empty, (prev, error) => prev + $" ({error.Code}) - {error.Description}")}");
                     return result;
                 }
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, $"Failed to register user '{newUser.UserName}'");
+                logger.LogError(ex, $"Failed to register user '{user.UserName}'");
                 return IdentityResult.Failed(new IdentityError
                     { Code = "InternalError", Description = "An error occurred registering the user" });
             }
@@ -129,7 +129,7 @@
             return true;
         }
 
-        public async Task<LoginResult> LoginUserAsync(string username, string password, string ipAddress)
+        public Task<LoginResult> LoginUserAsync(string username, string password, string ipAddress)
         {
             if (string.IsNullOrEmpty(username))
             {
@@ -141,6 +141,11 @@
                 throw new ArgumentNullException(nameof(password));
             }
 
+            return LoginUserInternalAsync(username, password, ipAddress);
+        }
+
+        public async Task<LoginResult> LoginUserInternalAsync(string username, string password, string ipAddress)
+        {
             var user = await GetUserFromUsernameAsync(username);
             if (user == null)
             {
@@ -173,7 +178,7 @@
             return result;
         }
 
-        public async Task<RefreshToken> CreateRefreshTokenAsync(GametekiUser user, string ipAddress)
+        public Task<RefreshToken> CreateRefreshTokenAsync(GametekiUser user, string ipAddress)
         {
             if (user == null)
             {
@@ -185,6 +190,11 @@
                 throw new ArgumentNullException(nameof(ipAddress));
             }
 
+            return CreateRefreshTokenInternalAsync(user, ipAddress);
+        }
+
+        public async Task<RefreshToken> CreateRefreshTokenInternalAsync(GametekiUser user, string ipAddress)
+        {
             var token = new RefreshToken
             {
                 UserId = user.Id,
@@ -209,13 +219,18 @@
             return token;
         }
 
-        public virtual async Task<GametekiUser> GetUserFromUsernameAsync(string username)
+        public virtual Task<GametekiUser> GetUserFromUsernameAsync(string username)
         {
             if (string.IsNullOrEmpty(username))
             {
                 throw new ArgumentNullException(nameof(username));
             }
 
+            return GetUserFromUsernameInternalAsync(username);
+        }
+
+        public virtual async Task<GametekiUser> GetUserFromUsernameInternalAsync(string username)
+        {
             return await context.Users
                 .Include(u => u.RefreshTokens)
                 .Include(u => u.BlockList)
@@ -225,7 +240,7 @@
                 .SingleOrDefaultAsync(u => u.UserName.Equals(username, StringComparison.OrdinalIgnoreCase));
         }
 
-        public async Task<LoginResult> RefreshTokenAsync(string token, string refreshToken, string ipAddress)
+        public Task<LoginResult> RefreshTokenAsync(string token, string refreshToken, string ipAddress)
         {
             if (token == null)
             {
@@ -237,6 +252,11 @@
                 throw new ArgumentNullException(nameof(refreshToken));
             }
 
+            return RefreshTokenInternalAsync(token, refreshToken, ipAddress);
+        }
+
+        public async Task<LoginResult> RefreshTokenInternalAsync(string token, string refreshToken, string ipAddress)
+        {
             var claimsPrincipal = GetPrincipalFromExpiredToken(token);
             if (claimsPrincipal == null)
             {
@@ -274,13 +294,18 @@
             return context.RefreshToken.SingleOrDefaultAsync(t => t.Id == tokenId);
         }
 
-        public async Task<bool> DeleteRefreshTokenAsync(RefreshToken token)
+        public Task<bool> DeleteRefreshTokenAsync(RefreshToken token)
         {
             if (token == null)
             {
                 throw new ArgumentNullException(nameof(token));
             }
 
+            return DeleteRefreshTokenInternalAsync(token);
+        }
+
+        public async Task<bool> DeleteRefreshTokenInternalAsync(RefreshToken token)
+        {
             try
             {
                 context.RefreshToken.Remove(token);
@@ -294,13 +319,18 @@
             return true;
         }
 
-        public async Task<bool> AddBlockListEntryAsync(GametekiUser user, string username)
+        public Task<bool> AddBlockListEntryAsync(GametekiUser user, string username)
         {
             if (user == null)
             {
                 throw new ArgumentNullException(nameof(user));
             }
 
+            return AddBlockListEntryInternalAsync(user, username);
+        }
+
+        public async Task<bool> AddBlockListEntryInternalAsync(GametekiUser user, string username)
+        {
             if (username == null)
             {
                 throw new ArgumentNullException(nameof(username));
@@ -325,7 +355,7 @@
             return true;
         }
 
-        public async Task<bool> RemoveBlockListEntryAsync(GametekiUser user, string username)
+        public Task<bool> RemoveBlockListEntryAsync(GametekiUser user, string username)
         {
             if (user == null)
             {
@@ -337,6 +367,11 @@
                 throw new ArgumentNullException(nameof(username));
             }
 
+            return RemoveBlockListEntryInternalAsync(user, username);
+        }
+
+        public async Task<bool> RemoveBlockListEntryInternalAsync(GametekiUser user, string username)
+        {
             try
             {
                 var blockListEntry = await context.BlockListEntry.SingleOrDefaultAsync(bl => bl.BlockedUser.Equals(username, StringComparison.InvariantCultureIgnoreCase));
@@ -353,13 +388,18 @@
             return true;
         }
 
-        public async Task<IdentityResult> UpdateUserAsync(GametekiUser user, string currentPassword, string newPassword)
+        public Task<IdentityResult> UpdateUserAsync(GametekiUser user, string existingPassword = null, string newPassword = null)
         {
             if (user == null)
             {
                 throw new ArgumentNullException(nameof(user));
             }
 
+            return UpdateUserInternalAsync(user, existingPassword, newPassword);
+        }
+
+        public async Task<IdentityResult> UpdateUserInternalAsync(GametekiUser user, string existingPassword, string newPassword)
+        {
             try
             {
                 await context.SaveChangesAsync();
@@ -370,23 +410,28 @@
                 return IdentityResult.Failed(new IdentityError { Code = "Internal Error", Description = "An error occurred saving your profile.  Please try again later." });
             }
 
-            if (currentPassword == null || newPassword == null)
+            if (existingPassword == null || newPassword == null)
             {
                 return IdentityResult.Success;
             }
 
-            var result = await userManager.ChangePasswordAsync(user, currentPassword, newPassword);
+            var result = await userManager.ChangePasswordAsync(user, existingPassword, newPassword);
 
             return !result.Succeeded ? result : IdentityResult.Success;
         }
 
-        public async Task<bool> ClearRefreshTokensAsync(GametekiUser user)
+        public Task<bool> ClearRefreshTokensAsync(GametekiUser user)
         {
             if (user == null)
             {
                 throw new ArgumentNullException(nameof(user));
             }
 
+            return ClearRefreshTokensInternalAsync(user);
+        }
+
+        public async Task<bool> ClearRefreshTokensInternalAsync(GametekiUser user)
+        {
             user.RefreshTokens.Clear();
 
             try
@@ -402,7 +447,7 @@
             return true;
         }
 
-        public async Task<bool> LogoutUserAsync(string token, string refreshToken)
+        public Task<bool> LogoutUserAsync(string token, string refreshToken)
         {
             if (token == null)
             {
@@ -414,6 +459,11 @@
                 throw new ArgumentNullException(nameof(refreshToken));
             }
 
+            return LogoutUserInternalAsync(token, refreshToken);
+        }
+
+        public async Task<bool> LogoutUserInternalAsync(string token, string refreshToken)
+        {
             var claimsPrincipal = GetPrincipalFromExpiredToken(token);
             if (claimsPrincipal == null)
             {
@@ -445,7 +495,7 @@
             return true;
         }
 
-        public async Task<bool> UpdatePermissionsAsync(GametekiUser user, Permissions newPermissions)
+        public Task<bool> UpdatePermissionsAsync(GametekiUser user, Permissions newPermissions)
         {
             if (user == null)
             {
@@ -457,6 +507,11 @@
                 throw new ArgumentNullException(nameof(newPermissions));
             }
 
+            return UpdatePermissionsInternalAsync(user, newPermissions);
+        }
+
+        public async Task<bool> UpdatePermissionsInternalAsync(GametekiUser user, Permissions newPermissions)
+        {
             var existingPermissions = user.ToApiUser().Permissions;
             var toAdd = new List<string>();
             var toRemove = new List<string>();
