@@ -4,5 +4,6 @@
     {
         public string DatabaseProvider { get; set; }
         public string ApplicationName { get; set; }
+        public string RedisUrl { get; set; }
     }
 }
