@@ -8,8 +8,8 @@
 
   <ItemGroup>
     <PackageReference Include="Bogus" Version="25.0.2" />
-    <PackageReference Include="CrimsonDev.Gameteki.Data" Version="1.0.0.18" />
-    <PackageReference Include="CrimsonDev.Gameteki.StyleCop.Rules" Version="1.0.0.12" />
+    <PackageReference Include="CrimsonDev.Gameteki.Data" Version="1.0.0.21" />
+    <PackageReference Include="CrimsonDev.Gameteki.StyleCop.Rules" Version="1.0.0.13" />
     <PackageReference Include="Microsoft.AspNetCore" Version="2.2.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="2.2.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="2.2.0" />

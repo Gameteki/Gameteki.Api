@@ -3,6 +3,7 @@ namespace CrimsonDev.Gameteki.Api.Tests.Helpers
     using System;
     using System.Collections.Generic;
     using Bogus;
+    using CrimsonDev.Gameteki.Data.Models;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -13,28 +14,42 @@ namespace CrimsonDev.Gameteki.Api.Tests.Helpers
             var faker = new Faker();
             return new Data.Models.GametekiUser
             {
-                RefreshTokens = new List<Data.Models.RefreshToken>(),
-                UserRoles = new List<Data.Models.GametekiUserRole>(),
-                BlockList = new List<Data.Models.BlockListEntry>(),
+                RefreshTokens = new List<RefreshToken>(),
+                UserRoles = new List<GametekiUserRole>(),
+                BlockList = new List<BlockListEntry>(),
                 Id = Guid.NewGuid().ToString(),
                 UserName = faker.Person.UserName,
                 Email = faker.Person.Email,
                 EmailConfirmed = true,
 
-                Settings = new Data.Models.UserSettings()
+                Settings = new UserSettings()
             };
         }
 
-        public static Data.Models.News GetRandomNews()
+        public static News GetRandomNews()
         {
             var faker = new Faker();
 
-            return new Data.Models.News
+            return new News
             {
                 Id = faker.Random.Int(min: 0),
                 PosterId = Guid.NewGuid().ToString(),
                 Text = faker.Lorem.Text(),
                 DatePublished = faker.Date.Recent()
+            };
+        }
+
+        public static LobbyMessage GetRandomLobbyMessage()
+        {
+            var faker = new Faker();
+
+            return new LobbyMessage
+            {
+                Id = faker.Random.Int(min: 0),
+                Removed = false,
+                MessageDateTime = faker.Date.Recent(),
+                MessageText = faker.Lorem.Text(),
+                SenderId = Guid.NewGuid().ToString()
             };
         }
 

@@ -37,6 +37,17 @@
             };
         }
 
+        public static ApiLobbyMessage ToApiLobbyMessage(this LobbyMessage message)
+        {
+            return new ApiLobbyMessage
+            {
+                Id = message.Id,
+                User = message.Sender.UserName,
+                Message = message.MessageText,
+                Time = message.MessageDateTime
+            };
+        }
+
         private static void PopulateApiUser(GametekiUser user, ApiUser apiUser)
         {
             apiUser.Id = user.Id;

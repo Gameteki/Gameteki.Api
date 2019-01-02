@@ -14,6 +14,7 @@
     {
         private readonly ILogger<NodeMonitor> logger;
         private readonly ISubscriber subscriber;
+        private readonly IDatabase database;
         private readonly Dictionary<string, List<string>> nodeUsers;
         private readonly Dictionary<string, DateTime> nodeLastHeartbeat;
 
@@ -25,6 +26,7 @@
             nodeLastHeartbeat = new Dictionary<string, DateTime>();
 
             subscriber = redisConnection.GetSubscriber();
+            database = redisConnection.GetDatabase();
 
             subscriber.Subscribe(RedisChannels.LobbyHello, OnLobbyHello);
             subscriber.Subscribe(RedisChannels.LobbyHeartbeat, OnLobbyHeartbeat);
@@ -36,7 +38,7 @@
         {
             foreach (var (nodeName, lastHeartbeat) in nodeLastHeartbeat)
             {
-                if (DateTime.UtcNow - lastHeartbeat < TimeSpan.FromMinutes(5))
+                if (DateTime.UtcNow - lastHeartbeat < TimeSpan.FromMinutes(2))
                 {
                     continue;
                 }

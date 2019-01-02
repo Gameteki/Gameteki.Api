@@ -48,10 +48,12 @@
             var trigger = TriggerBuilder
                 .Create()
                 .WithIdentity("NodeMonitorTrigger")
-                .WithSimpleSchedule(x => x.WithIntervalInMinutes(2).RepeatForever())
+                .WithSimpleSchedule(x => x.WithIntervalInSeconds(30).RepeatForever())
                 .Build();
 
             scheduler.ScheduleJob(job, trigger);
+
+            scheduler.Start().GetAwaiter().GetResult();
 
             return app;
         }
@@ -68,10 +70,12 @@
             services.AddTransient<IGametekiDbContext, GametekiDbContext>();
             services.AddTransient<INewsService, NewsService>();
             services.AddTransient<IEmailSender, EmailSender>();
+            services.AddTransient<IMessageService, MessageService>();
             services.AddTransient<IViewRenderService, ViewRenderService>();
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
             services.AddSingleton<IActionContextAccessor, ActionContextAccessor>();
             services.AddSingleton<IJobFactory, JobFactory>();
+            services.AddSingleton<IHttpClient, HttpClientWrapper>();
             services.AddSingleton<NodeMonitor>();
             services.Configure<AuthMessageSenderOptions>(configuration);
             services.Configure<AuthTokenOptions>(configuration.GetSection("Tokens"));

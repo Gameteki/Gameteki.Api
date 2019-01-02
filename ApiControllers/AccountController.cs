@@ -1,25 +1,36 @@
 ﻿namespace CrimsonDev.Gameteki.Api.ApiControllers
 {
     using System;
+    using System.IO;
     using System.Linq;
+    using System.Security.Cryptography;
     using System.Threading.Tasks;
+    using CrimsonDev.Gameteki.Api.Config;
     using CrimsonDev.Gameteki.Api.Helpers;
     using CrimsonDev.Gameteki.Api.Models;
+    using CrimsonDev.Gameteki.Api.Models.Api.Response;
     using CrimsonDev.Gameteki.Api.Services;
+    using CrimsonDev.Gameteki.Data.Models;
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.Extensions.Logging;
+    using Microsoft.Extensions.Options;
 
     [ApiController]
     public class AccountController : Controller
     {
         private readonly IUserService userService;
+        private readonly IHttpClient httpClient;
         private readonly ILogger<AccountController> logger;
+        private readonly GametekiApiOptions apiOptions;
 
-        public AccountController(IUserService userService, ILogger<AccountController> logger)
+        public AccountController(IUserService userService, IHttpClient httpClient, IOptions<GametekiApiOptions> options, ILogger<AccountController> logger)
         {
             this.userService = userService;
+            this.httpClient = httpClient;
             this.logger = logger;
+
+            apiOptions = options.Value;
         }
 
         [HttpPost]
@@ -43,13 +54,13 @@
                 return BadRequest(ModelState);
             }
 
-            var newUser = new Data.Models.GametekiUser
+            var newUser = new GametekiUser
             {
                 Email = request.Email,
                 UserName = request.Username,
                 LockoutEnabled = true,
                 RegisteredDate = DateTime.UtcNow,
-                Settings = new Data.Models.UserSettings
+                Settings = new UserSettings
                 {
                     EnableGravatar = request.EnableGravatar
                 },
@@ -83,6 +94,9 @@
             {
                 logger.LogError($"Error sending activation email for {newUser.UserName}");
             }
+
+            var stringToHash = newUser.Settings.EnableGravatar ? newUser.EmailHash : GetRandomString(32);
+            await httpClient.DownloadFileAsync($"https://www.gravatar.com/avatar/{stringToHash}?d=identicon&s=24", Path.Combine(apiOptions.ImagePath, "avatar", $"{newUser.UserName}.png"));
 
             logger.LogDebug($"Registered new account: '{newUser.UserName}'");
 
@@ -123,7 +137,7 @@
                 return this.FailureResponse("You must verify your account before trying to log in.  Please see the email we sent you for more details.");
             }
 
-            var response = new Models.Api.Response.LoginResponse
+            var response = new LoginResponse
             {
                 Success = true,
                 User = result.User.ToApiUser(),
@@ -160,10 +174,10 @@
             if (user != null)
             {
                 logger.LogDebug($"Check auth succeeded for {User.Identity.Name}");
-                return Json(new Models.Api.Response.CheckAuthResponse { Success = true, User = user.ToApiUser() });
+                return Json(new CheckAuthResponse { Success = true, User = user.ToApiUser() });
             }
 
-            logger.LogWarning($"AUTH: Failed checkauth for '{User.Identity.Name}'");
+            logger.LogWarning($"AUTH: Failed check auth for '{User.Identity.Name}'");
             return this.FailureResponse("An error occurred.  Please try again later.");
         }
 
@@ -186,7 +200,7 @@
             logger.LogDebug(
                 $"Successful token refresh for '{result.User.UserName}' using token '{request.Token} " +
                 $"and refresh token '{request.RefreshToken}'");
-            return Json(new Models.Api.Response.LoginResponse
+            return Json(new LoginResponse
             {
                 Success = true,
                 RefreshToken = result.RefreshToken,
@@ -215,10 +229,14 @@
             }
 
             user.Email = request.Email;
+            user.EmailHash = request.Email.Md5Hash();
             user.Settings.EnableGravatar = request.EnableGravatar;
             user.Settings.Background = request.Settings.Background;
             user.Settings.CardSize = request.Settings.CardSize;
             user.CustomData = request.CustomData;
+
+            var stringToHash = user.Settings.EnableGravatar ? user.EmailHash : GetRandomString(32);
+            await httpClient.DownloadFileAsync($"https://www.gravatar.com/avatar/{stringToHash}?d=identicon&s=24", Path.Combine(apiOptions.ImagePath, "avatar", $"{user.UserName}.png"));
 
             var result = await userService.UpdateUserAsync(user, request.CurrentPassword, request.NewPassword);
             if (!result.Succeeded)
@@ -233,7 +251,7 @@
 
             if (request.CurrentPassword == null || request.NewPassword == null)
             {
-                return Json(new Models.Api.Response.UpdateProfileResponse
+                return Json(new UpdateProfileResponse
                 {
                     Success = true,
                     User = user.ToApiUser(),
@@ -253,7 +271,7 @@
                 return this.FailureResponse("An error occurred saving your profile.  Please try again later.");
             }
 
-            return Json(new Models.Api.Response.UpdateProfileResponse
+            return Json(new UpdateProfileResponse
             {
                 Success = true,
                 User = user.ToApiUser(),
@@ -279,7 +297,7 @@
             }
 
             logger.LogDebug($"Returning user sessions for {username}");
-            return Json(new Models.Api.Response.GetUserSessionsResponse
+            return Json(new GetUserSessionsResponse
             {
                 Success = true,
                 Tokens = user.RefreshTokens.Select(rt => rt.ToApiToken()).ToList()
@@ -314,7 +332,7 @@
             }
 
             logger.LogDebug($"Deleted session '{sessionId.Value}' for user '{username}'");
-            return Json(new Models.Api.Response.DeleteSessionResponse
+            return Json(new DeleteSessionResponse
             {
                 Success = true,
                 TokenId = refreshToken.Id,
@@ -341,7 +359,7 @@
             }
 
             logger.LogDebug($"Returned block list for user '{username}'");
-            return Json(new Models.Api.Response.GetBlockListResponse { Success = true, BlockList = user.BlockList.Select(bl => bl.BlockedUser).ToList() });
+            return Json(new GetBlockListResponse { Success = true, BlockList = user.BlockList.Select(bl => bl.BlockedUser).ToList() });
         }
 
         [Route("api/account/{username}/blocklist")]
@@ -375,7 +393,7 @@
             }
 
             logger.LogDebug($"Added blocklist entry '{request.Username}' to user '{username}'");
-            return Json(new Models.Api.Response.BlockListEntryResponse
+            return Json(new BlockListEntryResponse
             {
                 Success = true,
                 Username = request.Username
@@ -417,11 +435,46 @@
 
             logger.LogDebug($"Removed blocklist entry '{blockedUsername}' for user '{username}'");
 
-            return Json(new Models.Api.Response.BlockListEntryResponse
+            return Json(new BlockListEntryResponse
             {
                 Success = true,
                 Username = blockedUsername
             });
+        }
+
+        [Route("api/account/{username}/updateavatar")]
+        [Authorize]
+        [HttpPost]
+        public async Task<IActionResult> UpdateAvatar(string username)
+        {
+            var user = await userService.GetUserFromUsernameAsync(username);
+            if (user == null)
+            {
+                logger.LogWarning($"Attempt to update avatar for unknown user '{username}'");
+
+                return NotFound();
+            }
+
+            var stringToHash = (user.Settings.EnableGravatar ? user.EmailHash : GetRandomString(32)).ToLower();
+            var result = await httpClient.DownloadFileAsync($"https://www.gravatar.com/avatar/{stringToHash}?d=identicon&s=24", Path.Combine(apiOptions.ImagePath, "avatar", $"{user.UserName}.png"));
+
+            if (result)
+            {
+                return this.SuccessResponse();
+            }
+
+            logger.LogError($"Error downloading avatar for {username}");
+            return this.FailureResponse("An error occurred updating your avatar.");
+        }
+
+        private string GetRandomString(int charCount)
+        {
+            var randomNumber = new byte[charCount];
+            using (var rng = RandomNumberGenerator.Create())
+            {
+                rng.GetBytes(randomNumber);
+                return Convert.ToBase64String(randomNumber);
+            }
         }
     }
 }
