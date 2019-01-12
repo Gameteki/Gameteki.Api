@@ -4,10 +4,9 @@
     using System.Linq;
     using System.Threading.Tasks;
     using CrimsonDev.Gameteki.Api.Helpers;
-    using CrimsonDev.Gameteki.Api.Models.Api.Request;
-    using CrimsonDev.Gameteki.Api.Models.Api.Response;
     using CrimsonDev.Gameteki.Api.Services;
     using CrimsonDev.Gameteki.Data.Constants;
+    using CrimsonDev.Gameteki.Data.Models.Api;
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.Extensions.Logging;

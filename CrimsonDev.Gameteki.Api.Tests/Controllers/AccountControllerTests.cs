@@ -9,15 +9,12 @@ namespace CrimsonDev.Gameteki.Api.Tests.Controllers
     using System.Security.Principal;
     using System.Threading.Tasks;
     using CrimsonDev.Gameteki.Api.ApiControllers;
-    using CrimsonDev.Gameteki.Api.Config;
     using CrimsonDev.Gameteki.Api.Helpers;
-    using CrimsonDev.Gameteki.Api.Models;
-    using CrimsonDev.Gameteki.Api.Models.Api;
-    using CrimsonDev.Gameteki.Api.Models.Api.Request;
-    using CrimsonDev.Gameteki.Api.Models.Api.Response;
     using CrimsonDev.Gameteki.Api.Services;
     using CrimsonDev.Gameteki.Api.Tests.Helpers;
     using CrimsonDev.Gameteki.Data.Models;
+    using CrimsonDev.Gameteki.Data.Models.Api;
+    using CrimsonDev.Gameteki.Data.Models.Config;
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Identity;
     using Microsoft.AspNetCore.Mvc;
@@ -94,7 +91,7 @@ namespace CrimsonDev.Gameteki.Api.Tests.Controllers
                     Email = "test@example.com"
                 };
 
-                UserServiceMock.Setup(us => us.RegisterUserAsync(It.IsAny<Data.Models.GametekiUser>(), It.IsAny<string>()))
+                UserServiceMock.Setup(us => us.RegisterUserAsync(It.IsAny<GametekiUser>(), It.IsAny<string>()))
                     .ReturnsAsync(
                         IdentityResult.Failed(new IdentityError { Code = "Test", Description = "Test Error" }));
 
@@ -112,11 +109,11 @@ namespace CrimsonDev.Gameteki.Api.Tests.Controllers
                     Email = "test@example.com"
                 };
 
-                UserServiceMock.Setup(us => us.RegisterUserAsync(It.IsAny<Data.Models.GametekiUser>(), It.IsAny<string>()))
+                UserServiceMock.Setup(us => us.RegisterUserAsync(It.IsAny<GametekiUser>(), It.IsAny<string>()))
                     .ReturnsAsync(IdentityResult.Success);
 
                 var result = await Controller.RegisterAccount(request);
-                var response = TestUtils.GetResponseFromResult<Models.Api.Response.ApiResponse>(result);
+                var response = TestUtils.GetResponseFromResult<ApiResponse>(result);
 
                 Assert.IsTrue(response.Success);
             }
@@ -132,7 +129,7 @@ namespace CrimsonDev.Gameteki.Api.Tests.Controllers
                     .ReturnsAsync(false);
 
                 var result = await Controller.ActivateAccount(new VerifyAccountRequest());
-                var response = TestUtils.GetResponseFromResult<Models.Api.Response.ApiResponse>(result);
+                var response = TestUtils.GetResponseFromResult<ApiResponse>(result);
 
                 Assert.IsFalse(response.Success);
             }
@@ -144,7 +141,7 @@ namespace CrimsonDev.Gameteki.Api.Tests.Controllers
                     .ReturnsAsync(true);
 
                 var result = await Controller.ActivateAccount(new VerifyAccountRequest());
-                var response = TestUtils.GetResponseFromResult<Models.Api.Response.ApiResponse>(result);
+                var response = TestUtils.GetResponseFromResult<ApiResponse>(result);
 
                 Assert.IsTrue(response.Success);
             }
@@ -172,14 +169,14 @@ namespace CrimsonDev.Gameteki.Api.Tests.Controllers
                     .Setup(us => us.LoginUserAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
                     .ReturnsAsync(new LoginResult
                     {
-                        User = new Data.Models.GametekiUser
+                        User = new GametekiUser
                         {
                             EmailConfirmed = false
                         }
                     });
 
                 var result = await Controller.Login(new LoginRequest());
-                var response = TestUtils.GetResponseFromResult<Models.Api.Response.ApiResponse>(result);
+                var response = TestUtils.GetResponseFromResult<ApiResponse>(result);
 
                 Assert.IsFalse(response.Success);
             }
@@ -193,7 +190,7 @@ namespace CrimsonDev.Gameteki.Api.Tests.Controllers
                     .ReturnsAsync(new LoginResult { User = returnedUser });
 
                 var result = await Controller.Login(new LoginRequest());
-                var response = TestUtils.GetResponseFromResult<Models.Api.Response.LoginResponse>(result);
+                var response = TestUtils.GetResponseFromResult<LoginResponse>(result);
 
                 Assert.IsTrue(response.Success);
                 Assert.AreEqual(response.User.Username, returnedUser.UserName);
@@ -210,7 +207,7 @@ namespace CrimsonDev.Gameteki.Api.Tests.Controllers
                     .ReturnsAsync(false);
 
                 var result = await Controller.Logout(new RefreshTokenRequest());
-                var response = TestUtils.GetResponseFromResult<Models.Api.Response.ApiResponse>(result);
+                var response = TestUtils.GetResponseFromResult<ApiResponse>(result);
 
                 Assert.IsFalse(response.Success);
             }
@@ -222,7 +219,7 @@ namespace CrimsonDev.Gameteki.Api.Tests.Controllers
                     .ReturnsAsync(true);
 
                 var result = await Controller.Logout(new RefreshTokenRequest());
-                var response = TestUtils.GetResponseFromResult<Models.Api.Response.ApiResponse>(result);
+                var response = TestUtils.GetResponseFromResult<ApiResponse>(result);
 
                 Assert.IsTrue(response.Success);
             }
@@ -235,10 +232,10 @@ namespace CrimsonDev.Gameteki.Api.Tests.Controllers
             public async Task WhenGetUsernameFailsReturnsFailureResponse()
             {
                 UserServiceMock.Setup(us => us.GetUserFromUsernameAsync(It.IsAny<string>()))
-                    .ReturnsAsync((Data.Models.GametekiUser)null);
+                    .ReturnsAsync((GametekiUser)null);
 
                 var result = await Controller.CheckAuth();
-                var response = TestUtils.GetResponseFromResult<Models.Api.Response.ApiResponse>(result);
+                var response = TestUtils.GetResponseFromResult<ApiResponse>(result);
 
                 Assert.IsFalse(response.Success);
             }
@@ -250,7 +247,7 @@ namespace CrimsonDev.Gameteki.Api.Tests.Controllers
                     .ReturnsAsync(TestUtils.GetRandomUser());
 
                 var result = await Controller.CheckAuth();
-                var response = TestUtils.GetResponseFromResult<Models.Api.Response.ApiResponse>(result);
+                var response = TestUtils.GetResponseFromResult<ApiResponse>(result);
 
                 Assert.IsTrue(response.Success);
             }
@@ -267,7 +264,7 @@ namespace CrimsonDev.Gameteki.Api.Tests.Controllers
                     .ReturnsAsync((LoginResult)null);
 
                 var result = await Controller.GetNewToken(new RefreshTokenRequest());
-                var response = TestUtils.GetResponseFromResult<Models.Api.Response.ApiResponse>(result);
+                var response = TestUtils.GetResponseFromResult<ApiResponse>(result);
 
                 Assert.IsFalse(response.Success);
             }
@@ -287,7 +284,7 @@ namespace CrimsonDev.Gameteki.Api.Tests.Controllers
                     .ReturnsAsync(loginResult);
 
                 var result = await Controller.GetNewToken(new RefreshTokenRequest());
-                var response = TestUtils.GetResponseFromResult<Models.Api.Response.LoginResponse>(result);
+                var response = TestUtils.GetResponseFromResult<LoginResponse>(result);
 
                 Assert.IsTrue(response.Success);
                 Assert.AreEqual(loginResult.Token, response.Token);
@@ -311,7 +308,7 @@ namespace CrimsonDev.Gameteki.Api.Tests.Controllers
             public async Task WhenUsernameNotFoundReturnsNotFound()
             {
                 UserServiceMock.Setup(us => us.GetUserFromUsernameAsync(It.IsAny<string>()))
-                    .ReturnsAsync((Data.Models.GametekiUser)null);
+                    .ReturnsAsync((GametekiUser)null);
 
                 var result = await Controller.UpdateProfile(TestUser, new UpdateProfileRequest());
 
@@ -324,7 +321,7 @@ namespace CrimsonDev.Gameteki.Api.Tests.Controllers
                 UserServiceMock.Setup(us => us.GetUserFromUsernameAsync(It.IsAny<string>()))
                     .ReturnsAsync(TestUtils.GetRandomUser());
                 UserServiceMock.Setup(us =>
-                        us.UpdateUserAsync(It.IsAny<Data.Models.GametekiUser>(), It.IsAny<string>(), It.IsAny<string>()))
+                        us.UpdateUserAsync(It.IsAny<GametekiUser>(), It.IsAny<string>(), It.IsAny<string>()))
                     .ReturnsAsync(
                         IdentityResult.Failed(new IdentityError { Code = "Test", Description = "Test Error" }));
 
@@ -342,9 +339,9 @@ namespace CrimsonDev.Gameteki.Api.Tests.Controllers
                 UserServiceMock.Setup(us => us.GetUserFromUsernameAsync(It.IsAny<string>()))
                     .ReturnsAsync(TestUtils.GetRandomUser());
                 UserServiceMock.Setup(us =>
-                        us.UpdateUserAsync(It.IsAny<Data.Models.GametekiUser>(), It.IsAny<string>(), It.IsAny<string>()))
+                        us.UpdateUserAsync(It.IsAny<GametekiUser>(), It.IsAny<string>(), It.IsAny<string>()))
                     .ReturnsAsync(IdentityResult.Success);
-                UserServiceMock.Setup(us => us.ClearRefreshTokensAsync(It.IsAny<Data.Models.GametekiUser>())).ReturnsAsync(false);
+                UserServiceMock.Setup(us => us.ClearRefreshTokensAsync(It.IsAny<GametekiUser>())).ReturnsAsync(false);
 
                 var request = new UpdateProfileRequest
                 {
@@ -354,7 +351,7 @@ namespace CrimsonDev.Gameteki.Api.Tests.Controllers
                     Email = "Test@example.com"
                 };
                 var result = await Controller.UpdateProfile(TestUser, request);
-                var response = TestUtils.GetResponseFromResult<Models.Api.Response.ApiResponse>(result);
+                var response = TestUtils.GetResponseFromResult<ApiResponse>(result);
 
                 Assert.IsFalse(response.Success);
             }
@@ -365,11 +362,11 @@ namespace CrimsonDev.Gameteki.Api.Tests.Controllers
                 UserServiceMock.Setup(us => us.GetUserFromUsernameAsync(It.IsAny<string>()))
                     .ReturnsAsync(TestUtils.GetRandomUser());
                 UserServiceMock.Setup(us =>
-                        us.UpdateUserAsync(It.IsAny<Data.Models.GametekiUser>(), It.IsAny<string>(), It.IsAny<string>()))
+                        us.UpdateUserAsync(It.IsAny<GametekiUser>(), It.IsAny<string>(), It.IsAny<string>()))
                     .ReturnsAsync(IdentityResult.Success);
-                UserServiceMock.Setup(us => us.ClearRefreshTokensAsync(It.IsAny<Data.Models.GametekiUser>())).ReturnsAsync(true);
-                UserServiceMock.Setup(us => us.CreateRefreshTokenAsync(It.IsAny<Data.Models.GametekiUser>(), It.IsAny<string>()))
-                    .ReturnsAsync((Data.Models.RefreshToken)null);
+                UserServiceMock.Setup(us => us.ClearRefreshTokensAsync(It.IsAny<GametekiUser>())).ReturnsAsync(true);
+                UserServiceMock.Setup(us => us.CreateRefreshTokenAsync(It.IsAny<GametekiUser>(), It.IsAny<string>()))
+                    .ReturnsAsync((RefreshToken)null);
 
                 var request = new UpdateProfileRequest
                 {
@@ -379,7 +376,7 @@ namespace CrimsonDev.Gameteki.Api.Tests.Controllers
                     Email = "Test@example.com"
                 };
                 var result = await Controller.UpdateProfile(TestUser, request);
-                var response = TestUtils.GetResponseFromResult<Models.Api.Response.ApiResponse>(result);
+                var response = TestUtils.GetResponseFromResult<ApiResponse>(result);
 
                 Assert.IsFalse(response.Success);
             }
@@ -390,13 +387,13 @@ namespace CrimsonDev.Gameteki.Api.Tests.Controllers
                 UserServiceMock.Setup(us => us.GetUserFromUsernameAsync(It.IsAny<string>()))
                     .ReturnsAsync(TestUtils.GetRandomUser());
                 UserServiceMock.Setup(us =>
-                        us.UpdateUserAsync(It.IsAny<Data.Models.GametekiUser>(), It.IsAny<string>(), It.IsAny<string>()))
+                        us.UpdateUserAsync(It.IsAny<GametekiUser>(), It.IsAny<string>(), It.IsAny<string>()))
                     .ReturnsAsync(IdentityResult.Success);
 
                 var result = await Controller.UpdateProfile(
                     TestUser,
                     new UpdateProfileRequest { Settings = new ApiSettings(), Email = "Test@example.com" });
-                var response = TestUtils.GetResponseFromResult<Models.Api.Response.UpdateProfileResponse>(result);
+                var response = TestUtils.GetResponseFromResult<UpdateProfileResponse>(result);
 
                 Assert.IsTrue(response.Success);
             }
@@ -407,11 +404,11 @@ namespace CrimsonDev.Gameteki.Api.Tests.Controllers
                 UserServiceMock.Setup(us => us.GetUserFromUsernameAsync(It.IsAny<string>()))
                     .ReturnsAsync(TestUtils.GetRandomUser());
                 UserServiceMock.Setup(us =>
-                        us.UpdateUserAsync(It.IsAny<Data.Models.GametekiUser>(), It.IsAny<string>(), It.IsAny<string>()))
+                        us.UpdateUserAsync(It.IsAny<GametekiUser>(), It.IsAny<string>(), It.IsAny<string>()))
                     .ReturnsAsync(IdentityResult.Success);
-                UserServiceMock.Setup(us => us.ClearRefreshTokensAsync(It.IsAny<Data.Models.GametekiUser>())).ReturnsAsync(true);
-                UserServiceMock.Setup(us => us.CreateRefreshTokenAsync(It.IsAny<Data.Models.GametekiUser>(), It.IsAny<string>()))
-                    .ReturnsAsync(new Data.Models.RefreshToken());
+                UserServiceMock.Setup(us => us.ClearRefreshTokensAsync(It.IsAny<GametekiUser>())).ReturnsAsync(true);
+                UserServiceMock.Setup(us => us.CreateRefreshTokenAsync(It.IsAny<GametekiUser>(), It.IsAny<string>()))
+                    .ReturnsAsync(new RefreshToken());
 
                 var request = new UpdateProfileRequest
                 {
@@ -421,7 +418,7 @@ namespace CrimsonDev.Gameteki.Api.Tests.Controllers
                     Email = "Test@example.com"
                 };
                 var result = await Controller.UpdateProfile(TestUser, request);
-                var response = TestUtils.GetResponseFromResult<Models.Api.Response.UpdateProfileResponse>(result);
+                var response = TestUtils.GetResponseFromResult<UpdateProfileResponse>(result);
 
                 Assert.IsTrue(response.Success);
             }
@@ -442,7 +439,7 @@ namespace CrimsonDev.Gameteki.Api.Tests.Controllers
             public async Task WhenUsernameNotFoundReturnsNotFound()
             {
                 UserServiceMock.Setup(us => us.GetUserFromUsernameAsync(It.IsAny<string>()))
-                    .ReturnsAsync((Data.Models.GametekiUser)null);
+                    .ReturnsAsync((GametekiUser)null);
 
                 var result = await Controller.GetUserSessions(TestUser);
 
@@ -453,9 +450,9 @@ namespace CrimsonDev.Gameteki.Api.Tests.Controllers
             public async Task WhenUsernameFoundReturnsSessionList()
             {
                 var user = TestUtils.GetRandomUser();
-                user.RefreshTokens = new List<Data.Models.RefreshToken>
+                user.RefreshTokens = new List<RefreshToken>
                 {
-                    new Data.Models.RefreshToken
+                    new RefreshToken
                     {
                         IpAddress = "127.0.0.1",
                         Token = "token1"
@@ -466,7 +463,7 @@ namespace CrimsonDev.Gameteki.Api.Tests.Controllers
                     .ReturnsAsync(user);
 
                 var result = await Controller.GetUserSessions(TestUser);
-                var response = TestUtils.GetResponseFromResult<Models.Api.Response.GetUserSessionsResponse>(result);
+                var response = TestUtils.GetResponseFromResult<GetUserSessionsResponse>(result);
 
                 Assert.IsTrue(response.Success);
                 Assert.AreEqual(user.RefreshTokens.First().IpAddress, response.Tokens.First().Ip);
@@ -488,7 +485,7 @@ namespace CrimsonDev.Gameteki.Api.Tests.Controllers
             public async Task WhenTokenNotFoundReturnsNotFound()
             {
                 UserServiceMock.Setup(us => us.GetRefreshTokenByIdAsync(It.IsAny<int>()))
-                    .ReturnsAsync((Data.Models.RefreshToken)null);
+                    .ReturnsAsync((RefreshToken)null);
 
                 var result = await Controller.DeleteUserSession(TestUser, 1);
 
@@ -499,11 +496,11 @@ namespace CrimsonDev.Gameteki.Api.Tests.Controllers
             public async Task WhenDeleteTokenFailsReturnsFailure()
             {
                 UserServiceMock.Setup(us => us.GetRefreshTokenByIdAsync(It.IsAny<int>()))
-                    .ReturnsAsync(new Data.Models.RefreshToken());
-                UserServiceMock.Setup(us => us.DeleteRefreshTokenAsync(It.IsAny<Data.Models.RefreshToken>())).ReturnsAsync(false);
+                    .ReturnsAsync(new RefreshToken());
+                UserServiceMock.Setup(us => us.DeleteRefreshTokenAsync(It.IsAny<RefreshToken>())).ReturnsAsync(false);
 
                 var result = await Controller.DeleteUserSession(TestUser, 1);
-                var response = TestUtils.GetResponseFromResult<Models.Api.Response.ApiResponse>(result);
+                var response = TestUtils.GetResponseFromResult<ApiResponse>(result);
 
                 Assert.IsFalse(response.Success);
             }
@@ -512,11 +509,11 @@ namespace CrimsonDev.Gameteki.Api.Tests.Controllers
             public async Task WhenDeleteTokenSucceedsReturnsDeleteResponse()
             {
                 UserServiceMock.Setup(us => us.GetRefreshTokenByIdAsync(It.IsAny<int>()))
-                    .ReturnsAsync(new Data.Models.RefreshToken { Id = 1 });
-                UserServiceMock.Setup(us => us.DeleteRefreshTokenAsync(It.IsAny<Data.Models.RefreshToken>())).ReturnsAsync(true);
+                    .ReturnsAsync(new RefreshToken { Id = 1 });
+                UserServiceMock.Setup(us => us.DeleteRefreshTokenAsync(It.IsAny<RefreshToken>())).ReturnsAsync(true);
 
                 var result = await Controller.DeleteUserSession(TestUser, 1);
-                var response = TestUtils.GetResponseFromResult<Models.Api.Response.DeleteSessionResponse>(result);
+                var response = TestUtils.GetResponseFromResult<DeleteSessionResponse>(result);
 
                 Assert.IsTrue(response.Success);
                 Assert.AreEqual(1, response.TokenId);
@@ -538,7 +535,7 @@ namespace CrimsonDev.Gameteki.Api.Tests.Controllers
             public async Task WhenUsernameNotFoundReturnsNotFound()
             {
                 UserServiceMock.Setup(us => us.GetUserFromUsernameAsync(It.IsAny<string>()))
-                    .ReturnsAsync((Data.Models.GametekiUser)null);
+                    .ReturnsAsync((GametekiUser)null);
 
                 var result = await Controller.GetBlockList(TestUser);
 
@@ -549,16 +546,16 @@ namespace CrimsonDev.Gameteki.Api.Tests.Controllers
             public async Task WhenUsernameFoundReturnsBlockListResponse()
             {
                 var user = TestUtils.GetRandomUser();
-                user.BlockList = new List<Data.Models.BlockListEntry>
+                user.BlockList = new List<BlockListEntry>
                 {
-                    new Data.Models.BlockListEntry { BlockedUser = "Test" },
-                    new Data.Models.BlockListEntry { BlockedUser = "Test2" }
+                    new BlockListEntry { BlockedUser = "Test" },
+                    new BlockListEntry { BlockedUser = "Test2" }
                 };
 
                 UserServiceMock.Setup(us => us.GetUserFromUsernameAsync(It.IsAny<string>())).ReturnsAsync(user);
 
                 var result = await Controller.GetBlockList(TestUser);
-                var response = TestUtils.GetResponseFromResult<Models.Api.Response.GetBlockListResponse>(result);
+                var response = TestUtils.GetResponseFromResult<GetBlockListResponse>(result);
 
                 Assert.IsTrue(response.Success);
                 CollectionAssert.Contains(response.BlockList, "Test");
@@ -580,7 +577,7 @@ namespace CrimsonDev.Gameteki.Api.Tests.Controllers
             public async Task WhenUsernameNotFoundReturnsNotFound()
             {
                 UserServiceMock.Setup(us => us.GetUserFromUsernameAsync(It.IsAny<string>()))
-                    .ReturnsAsync((Data.Models.GametekiUser)null);
+                    .ReturnsAsync((GametekiUser)null);
 
                 var result = await Controller.AddBlockListEntry(TestUser, new BlockListEntryRequest());
 
@@ -591,13 +588,13 @@ namespace CrimsonDev.Gameteki.Api.Tests.Controllers
             public async Task WhenEntryAlreadyOnListReturnsFailureResponse()
             {
                 var user = TestUtils.GetRandomUser();
-                user.BlockList = new List<Data.Models.BlockListEntry> { new Data.Models.BlockListEntry { BlockedUser = "Test" } };
+                user.BlockList = new List<BlockListEntry> { new BlockListEntry { BlockedUser = "Test" } };
 
                 UserServiceMock.Setup(us => us.GetUserFromUsernameAsync(It.IsAny<string>())).ReturnsAsync(user);
 
                 var result =
                     await Controller.AddBlockListEntry(TestUser, new BlockListEntryRequest { Username = "test" });
-                var response = TestUtils.GetResponseFromResult<Models.Api.Response.ApiResponse>(result);
+                var response = TestUtils.GetResponseFromResult<ApiResponse>(result);
 
                 Assert.IsFalse(response.Success);
             }
@@ -607,11 +604,11 @@ namespace CrimsonDev.Gameteki.Api.Tests.Controllers
             {
                 UserServiceMock.Setup(us => us.GetUserFromUsernameAsync(It.IsAny<string>()))
                     .ReturnsAsync(TestUtils.GetRandomUser());
-                UserServiceMock.Setup(us => us.AddBlockListEntryAsync(It.IsAny<Data.Models.GametekiUser>(), It.IsAny<string>()))
+                UserServiceMock.Setup(us => us.AddBlockListEntryAsync(It.IsAny<GametekiUser>(), It.IsAny<string>()))
                     .ReturnsAsync(false);
 
                 var result = await Controller.AddBlockListEntry(TestUser, new BlockListEntryRequest());
-                var response = TestUtils.GetResponseFromResult<Models.Api.Response.ApiResponse>(result);
+                var response = TestUtils.GetResponseFromResult<ApiResponse>(result);
 
                 Assert.IsFalse(response.Success);
             }
@@ -621,12 +618,12 @@ namespace CrimsonDev.Gameteki.Api.Tests.Controllers
             {
                 UserServiceMock.Setup(us => us.GetUserFromUsernameAsync(It.IsAny<string>()))
                     .ReturnsAsync(TestUtils.GetRandomUser());
-                UserServiceMock.Setup(us => us.AddBlockListEntryAsync(It.IsAny<Data.Models.GametekiUser>(), It.IsAny<string>()))
+                UserServiceMock.Setup(us => us.AddBlockListEntryAsync(It.IsAny<GametekiUser>(), It.IsAny<string>()))
                     .ReturnsAsync(true);
 
                 var result =
                     await Controller.AddBlockListEntry(TestUser, new BlockListEntryRequest { Username = "Test" });
-                var response = TestUtils.GetResponseFromResult<Models.Api.Response.BlockListEntryResponse>(result);
+                var response = TestUtils.GetResponseFromResult<BlockListEntryResponse>(result);
 
                 Assert.IsTrue(response.Success);
                 Assert.AreEqual("Test", response.Username);
@@ -648,7 +645,7 @@ namespace CrimsonDev.Gameteki.Api.Tests.Controllers
             public async Task WhenUsernameNotFoundReturnsNotFound()
             {
                 UserServiceMock.Setup(us => us.GetUserFromUsernameAsync(It.IsAny<string>()))
-                    .ReturnsAsync((Data.Models.GametekiUser)null);
+                    .ReturnsAsync((GametekiUser)null);
 
                 var result = await Controller.RemoveBlockListEntry(TestUser, "Blocked");
 
@@ -659,7 +656,7 @@ namespace CrimsonDev.Gameteki.Api.Tests.Controllers
             public async Task WhenEntryNotOnListReturnsNotFound()
             {
                 var user = TestUtils.GetRandomUser();
-                user.BlockList = new List<Data.Models.BlockListEntry> { new Data.Models.BlockListEntry { BlockedUser = "Test" } };
+                user.BlockList = new List<BlockListEntry> { new BlockListEntry { BlockedUser = "Test" } };
 
                 UserServiceMock.Setup(us => us.GetUserFromUsernameAsync(It.IsAny<string>())).ReturnsAsync(user);
 
@@ -671,14 +668,14 @@ namespace CrimsonDev.Gameteki.Api.Tests.Controllers
             public async Task WhenBlockListRemoveFailsReturnsFailureResponse()
             {
                 var user = TestUtils.GetRandomUser();
-                user.BlockList = new List<Data.Models.BlockListEntry> { new Data.Models.BlockListEntry { BlockedUser = "Test" } };
+                user.BlockList = new List<BlockListEntry> { new BlockListEntry { BlockedUser = "Test" } };
 
                 UserServiceMock.Setup(us => us.GetUserFromUsernameAsync(It.IsAny<string>())).ReturnsAsync(user);
-                UserServiceMock.Setup(us => us.RemoveBlockListEntryAsync(It.IsAny<Data.Models.GametekiUser>(), It.IsAny<string>()))
+                UserServiceMock.Setup(us => us.RemoveBlockListEntryAsync(It.IsAny<GametekiUser>(), It.IsAny<string>()))
                     .ReturnsAsync(false);
 
                 var result = await Controller.RemoveBlockListEntry(TestUser, "Test");
-                var response = TestUtils.GetResponseFromResult<Models.Api.Response.ApiResponse>(result);
+                var response = TestUtils.GetResponseFromResult<ApiResponse>(result);
 
                 Assert.IsFalse(response.Success);
             }
@@ -687,14 +684,14 @@ namespace CrimsonDev.Gameteki.Api.Tests.Controllers
             public async Task WhenBlockListSucceedsReturnsSuccessResponse()
             {
                 var user = TestUtils.GetRandomUser();
-                user.BlockList = new List<Data.Models.BlockListEntry> { new Data.Models.BlockListEntry { BlockedUser = "Test" } };
+                user.BlockList = new List<BlockListEntry> { new BlockListEntry { BlockedUser = "Test" } };
 
                 UserServiceMock.Setup(us => us.GetUserFromUsernameAsync(It.IsAny<string>())).ReturnsAsync(user);
-                UserServiceMock.Setup(us => us.RemoveBlockListEntryAsync(It.IsAny<Data.Models.GametekiUser>(), It.IsAny<string>()))
+                UserServiceMock.Setup(us => us.RemoveBlockListEntryAsync(It.IsAny<GametekiUser>(), It.IsAny<string>()))
                     .ReturnsAsync(true);
 
                 var result = await Controller.RemoveBlockListEntry(TestUser, "Test");
-                var response = TestUtils.GetResponseFromResult<Models.Api.Response.BlockListEntryResponse>(result);
+                var response = TestUtils.GetResponseFromResult<BlockListEntryResponse>(result);
 
                 Assert.IsTrue(response.Success);
                 Assert.AreEqual("Test", response.Username);

@@ -9,6 +9,7 @@
     using CrimsonDev.Gameteki.Api.Services;
     using CrimsonDev.Gameteki.Api.Tests.Helpers;
     using CrimsonDev.Gameteki.Data.Constants;
+    using CrimsonDev.Gameteki.Data.Models.Api;
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Identity;
     using Microsoft.AspNetCore.Mvc;
@@ -65,7 +66,7 @@
                 UserServiceMock.Setup(us => us.GetUserFromUsernameAsync(It.IsAny<string>())).ReturnsAsync(user);
 
                 var result = await Controller.FindUser(user.UserName);
-                var response = TestUtils.GetResponseFromResult<Models.Api.Response.FindUserResponse>(result);
+                var response = TestUtils.GetResponseFromResult<FindUserResponse>(result);
 
                 Assert.IsTrue(response.Success);
                 Assert.AreEqual(user.EmailConfirmed, response.User.Verified);
@@ -81,7 +82,7 @@
             {
                 UserServiceMock.Setup(us => us.GetUserFromUsernameAsync(It.IsAny<string>())).ReturnsAsync((Data.Models.GametekiUser)null);
 
-                var result = await Controller.UpdateUser(TestUser, new Models.Api.ApiUserAdmin());
+                var result = await Controller.UpdateUser(TestUser, new ApiUserAdmin());
 
                 Assert.IsInstanceOfType(result, typeof(NotFoundResult));
             }
@@ -92,8 +93,8 @@
                 UserServiceMock.Setup(us => us.GetUserFromUsernameAsync(It.IsAny<string>())).ReturnsAsync(TestUtils.GetRandomUser());
                 UserServiceMock.Setup(us => us.UpdateUserAsync(It.IsAny<Data.Models.GametekiUser>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(IdentityResult.Failed());
 
-                var result = await Controller.UpdateUser(TestUser, new Models.Api.ApiUserAdmin());
-                var response = TestUtils.GetResponseFromResult<Models.Api.Response.ApiResponse>(result);
+                var result = await Controller.UpdateUser(TestUser, new ApiUserAdmin());
+                var response = TestUtils.GetResponseFromResult<ApiResponse>(result);
 
                 Assert.IsFalse(response.Success);
             }
@@ -104,8 +105,8 @@
                 UserServiceMock.Setup(us => us.GetUserFromUsernameAsync(It.IsAny<string>())).ReturnsAsync(TestUtils.GetRandomUser());
                 UserServiceMock.Setup(us => us.UpdateUserAsync(It.IsAny<Data.Models.GametekiUser>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(IdentityResult.Success);
 
-                var result = await Controller.UpdateUser(TestUser, new Models.Api.ApiUserAdmin());
-                var response = TestUtils.GetResponseFromResult<Models.Api.Response.ApiResponse>(result);
+                var result = await Controller.UpdateUser(TestUser, new ApiUserAdmin());
+                var response = TestUtils.GetResponseFromResult<ApiResponse>(result);
 
                 Assert.IsTrue(response.Success);
 
@@ -121,8 +122,8 @@
 
                 Controller.HttpContext.User.AddIdentity(new ClaimsIdentity(new List<Claim> { new Claim(ClaimTypes.Role, Roles.PermissionsManager) }));
 
-                var result = await Controller.UpdateUser(TestUser, new Models.Api.ApiUserAdmin());
-                var response = TestUtils.GetResponseFromResult<Models.Api.Response.ApiResponse>(result);
+                var result = await Controller.UpdateUser(TestUser, new ApiUserAdmin());
+                var response = TestUtils.GetResponseFromResult<ApiResponse>(result);
 
                 Assert.IsFalse(response.Success);
             }
@@ -136,8 +137,8 @@
 
                 Controller.HttpContext.User.AddIdentity(new ClaimsIdentity(new List<Claim> { new Claim(ClaimTypes.Role, Roles.PermissionsManager) }));
 
-                var result = await Controller.UpdateUser(TestUser, new Models.Api.ApiUserAdmin());
-                var response = TestUtils.GetResponseFromResult<Models.Api.Response.ApiResponse>(result);
+                var result = await Controller.UpdateUser(TestUser, new ApiUserAdmin());
+                var response = TestUtils.GetResponseFromResult<ApiResponse>(result);
 
                 Assert.IsTrue(response.Success);
             }

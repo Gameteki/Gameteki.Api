@@ -1,8 +1,8 @@
 ﻿namespace CrimsonDev.Gameteki.Api.Helpers
 {
-    using CrimsonDev.Gameteki.Api.Models.Api;
     using CrimsonDev.Gameteki.Data.Constants;
     using CrimsonDev.Gameteki.Data.Models;
+    using CrimsonDev.Gameteki.Data.Models.Api;
 
     public static class ApiModelExtensions
     {

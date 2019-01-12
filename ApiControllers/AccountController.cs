@@ -5,12 +5,12 @@
     using System.Linq;
     using System.Security.Cryptography;
     using System.Threading.Tasks;
-    using CrimsonDev.Gameteki.Api.Config;
     using CrimsonDev.Gameteki.Api.Helpers;
     using CrimsonDev.Gameteki.Api.Models;
-    using CrimsonDev.Gameteki.Api.Models.Api.Response;
     using CrimsonDev.Gameteki.Api.Services;
     using CrimsonDev.Gameteki.Data.Models;
+    using CrimsonDev.Gameteki.Data.Models.Api;
+    using CrimsonDev.Gameteki.Data.Models.Config;
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.Extensions.Logging;
@@ -35,7 +35,7 @@
 
         [HttpPost]
         [Route("api/account/register")]
-        public async Task<IActionResult> RegisterAccount(Models.Api.Request.RegisterAccountRequest request)
+        public async Task<IActionResult> RegisterAccount(RegisterAccountRequest request)
         {
             if (await userService.IsEmailInUseAsync(request.Email))
             {
@@ -109,7 +109,7 @@
 
         [HttpPost]
         [Route("api/account/activate")]
-        public async Task<IActionResult> ActivateAccount(Models.Api.Request.VerifyAccountRequest request)
+        public async Task<IActionResult> ActivateAccount(VerifyAccountRequest request)
         {
             var result = await userService.ValidateUserAsync(request.Id, request.Token);
 
@@ -125,7 +125,7 @@
 
         [HttpPost]
         [Route("api/account/login")]
-        public async Task<IActionResult> Login(Models.Api.Request.LoginRequest request)
+        public async Task<IActionResult> Login(LoginRequest request)
         {
             var result = await userService.LoginUserAsync(request.Username, request.Password, HttpContext.Connection.RemoteIpAddress.ToString());
 
@@ -155,7 +155,7 @@
 
         [Route("api/account/logout")]
         [Authorize]
-        public async Task<IActionResult> Logout(Models.Api.Request.RefreshTokenRequest request)
+        public async Task<IActionResult> Logout(RefreshTokenRequest request)
         {
             var result = await userService.LogoutUserAsync(request.Token, request.RefreshToken);
 
@@ -187,7 +187,7 @@
 
         [Route("api/account/token")]
         [HttpPost]
-        public async Task<IActionResult> GetNewToken(Models.Api.Request.RefreshTokenRequest request)
+        public async Task<IActionResult> GetNewToken(RefreshTokenRequest request)
         {
             var result = await userService.RefreshTokenAsync(
                 request.Token,
@@ -216,7 +216,7 @@
         [Route("api/account/{username}")]
         [Authorize]
         [HttpPut]
-        public async Task<IActionResult> UpdateProfile(string username, [FromBody] Models.Api.Request.UpdateProfileRequest request)
+        public async Task<IActionResult> UpdateProfile(string username, [FromBody] UpdateProfileRequest request)
         {
             if (username != User.Identity.Name)
             {
@@ -369,7 +369,7 @@
         [Route("api/account/{username}/blocklist")]
         [Authorize]
         [HttpPost]
-        public async Task<IActionResult> AddBlockListEntry(string username, Models.Api.Request.BlockListEntryRequest request)
+        public async Task<IActionResult> AddBlockListEntry(string username, BlockListEntryRequest request)
         {
             if (username != User.Identity.Name)
             {

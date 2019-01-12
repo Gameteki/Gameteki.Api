@@ -7,11 +7,10 @@
     using System.Security.Principal;
     using System.Threading.Tasks;
     using CrimsonDev.Gameteki.Api.ApiControllers;
-    using CrimsonDev.Gameteki.Api.Models.Api.Request;
-    using CrimsonDev.Gameteki.Api.Models.Api.Response;
     using CrimsonDev.Gameteki.Api.Services;
     using CrimsonDev.Gameteki.Api.Tests.Helpers;
     using CrimsonDev.Gameteki.Data.Models;
+    using CrimsonDev.Gameteki.Data.Models.Api;
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.Extensions.Logging;

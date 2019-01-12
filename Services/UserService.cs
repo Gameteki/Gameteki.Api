@@ -8,12 +8,12 @@
     using System.Security.Cryptography;
     using System.Text;
     using System.Threading.Tasks;
-    using CrimsonDev.Gameteki.Api.Config;
     using CrimsonDev.Gameteki.Api.Helpers;
     using CrimsonDev.Gameteki.Api.Models;
     using CrimsonDev.Gameteki.Data;
     using CrimsonDev.Gameteki.Data.Constants;
     using CrimsonDev.Gameteki.Data.Models;
+    using CrimsonDev.Gameteki.Data.Models.Config;
     using Microsoft.AspNetCore.Identity;
     using Microsoft.AspNetCore.Identity.UI.Services;
     using Microsoft.EntityFrameworkCore;
@@ -43,7 +43,7 @@
         {
             this.context = context;
             this.userManager = userManager;
-            this.apiOptions = lobbyOptions.Value;
+            apiOptions = lobbyOptions.Value;
             this.emailSender = emailSender;
             this.viewRenderService = viewRenderService;
             this.logger = logger;

@@ -4,6 +4,7 @@ namespace CrimsonDev.Gameteki.Api.Tests.Helpers
     using System.Collections.Generic;
     using Bogus;
     using CrimsonDev.Gameteki.Data.Models;
+    using CrimsonDev.Gameteki.Data.Models.Api;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -70,7 +71,7 @@ namespace CrimsonDev.Gameteki.Api.Tests.Helpers
         }
 
         public static TResponse GetResponseFromResult<TResponse>(IActionResult result)
-            where TResponse : Models.Api.Response.ApiResponse
+            where TResponse : ApiResponse
         {
             Assert.IsInstanceOfType(result, typeof(JsonResult));
 

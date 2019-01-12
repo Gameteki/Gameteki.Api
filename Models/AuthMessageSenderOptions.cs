@@ -1,6 +1,6 @@
-﻿namespace CrimsonDev.Gameteki.Api.Config
+﻿namespace CrimsonDev.Gameteki.Api.Models
 {
-    internal class AuthMessageSenderOptions
+    public class AuthMessageSenderOptions
     {
         public string SendGridUser { get; set; }
         public string SendGridKey { get; set; }

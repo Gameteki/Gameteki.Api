@@ -1,6 +1,6 @@
 ﻿namespace CrimsonDev.Gameteki.Api.Helpers
 {
-    using CrimsonDev.Gameteki.Api.Models.Api.Response;
+    using CrimsonDev.Gameteki.Data.Models.Api;
     using Microsoft.AspNetCore.Mvc;
 
     public static class ApiResponseExtensions

@@ -4,11 +4,12 @@
     using System.Diagnostics.CodeAnalysis;
     using System.Text;
     using System.Threading.Tasks;
-    using CrimsonDev.Gameteki.Api.Config;
+    using CrimsonDev.Gameteki.Api.Models;
     using CrimsonDev.Gameteki.Api.Scheduler;
     using CrimsonDev.Gameteki.Api.Services;
     using CrimsonDev.Gameteki.Data;
     using CrimsonDev.Gameteki.Data.Models;
+    using CrimsonDev.Gameteki.Data.Models.Config;
     using Microsoft.AspNetCore.Authentication.JwtBearer;
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Http;

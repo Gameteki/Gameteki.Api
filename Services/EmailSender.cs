@@ -1,7 +1,7 @@
 ﻿namespace CrimsonDev.Gameteki.Api.Services
 {
     using System.Threading.Tasks;
-    using CrimsonDev.Gameteki.Api.Config;
+    using CrimsonDev.Gameteki.Api.Models;
     using Microsoft.AspNetCore.Identity.UI.Services;
     using Microsoft.Extensions.Options;
     using SendGrid;

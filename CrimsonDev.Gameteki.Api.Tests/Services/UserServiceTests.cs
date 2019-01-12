@@ -10,12 +10,12 @@
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
-    using CrimsonDev.Gameteki.Api.Config;
     using CrimsonDev.Gameteki.Api.Models;
     using CrimsonDev.Gameteki.Api.Services;
     using CrimsonDev.Gameteki.Api.Tests.Helpers;
     using CrimsonDev.Gameteki.Data;
     using CrimsonDev.Gameteki.Data.Constants;
+    using CrimsonDev.Gameteki.Data.Models.Config;
     using Microsoft.AspNetCore.Identity;
     using Microsoft.AspNetCore.Identity.UI.Services;
     using Microsoft.Extensions.Logging;

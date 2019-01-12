@@ -8,6 +8,7 @@
     using CrimsonDev.Gameteki.Api.ApiControllers;
     using CrimsonDev.Gameteki.Api.Services;
     using CrimsonDev.Gameteki.Api.Tests.Helpers;
+    using CrimsonDev.Gameteki.Data.Models.Api;
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.Extensions.Logging;
@@ -53,7 +54,7 @@
                 MockNewsService.Setup(ns => ns.GetLatestNewsAsync()).ReturnsAsync(new List<Data.Models.News> { new Data.Models.News() });
 
                 var result = await Controller.GetNews();
-                var response = TestUtils.GetResponseFromResult<Models.Api.Response.GetNewsResponse>(result);
+                var response = TestUtils.GetResponseFromResult<GetNewsResponse>(result);
 
                 Assert.IsTrue(response.Success);
                 Assert.AreEqual(1, response.News.Count);
@@ -69,7 +70,7 @@
                 MockNewsService.Setup(ns => ns.GetAllNewsAsync()).ReturnsAsync(new List<Data.Models.News> { new Data.Models.News() });
 
                 var result = await Controller.GetAllNews();
-                var response = TestUtils.GetResponseFromResult<Models.Api.Response.GetNewsResponse>(result);
+                var response = TestUtils.GetResponseFromResult<GetNewsResponse>(result);
 
                 Assert.IsTrue(response.Success);
                 Assert.AreEqual(1, response.News.Count);
@@ -84,8 +85,8 @@
             {
                 MockUserService.Setup(us => us.GetUserFromUsernameAsync(It.IsAny<string>())).ReturnsAsync((Data.Models.GametekiUser)null);
 
-                var result = await Controller.AddNews(new Models.Api.Request.AddNewsRequest());
-                var response = TestUtils.GetResponseFromResult<Models.Api.Response.ApiResponse>(result);
+                var result = await Controller.AddNews(new AddNewsRequest());
+                var response = TestUtils.GetResponseFromResult<ApiResponse>(result);
 
                 Assert.IsFalse(response.Success);
             }
@@ -96,8 +97,8 @@
                 MockUserService.Setup(us => us.GetUserFromUsernameAsync(It.IsAny<string>())).ReturnsAsync(TestUtils.GetRandomUser());
                 MockNewsService.Setup(ns => ns.AddNewsAsync(It.IsAny<Data.Models.News>())).ReturnsAsync(false);
 
-                var result = await Controller.AddNews(new Models.Api.Request.AddNewsRequest());
-                var response = TestUtils.GetResponseFromResult<Models.Api.Response.ApiResponse>(result);
+                var result = await Controller.AddNews(new AddNewsRequest());
+                var response = TestUtils.GetResponseFromResult<ApiResponse>(result);
 
                 Assert.IsFalse(response.Success);
             }
@@ -108,8 +109,8 @@
                 MockUserService.Setup(us => us.GetUserFromUsernameAsync(It.IsAny<string>())).ReturnsAsync(TestUtils.GetRandomUser());
                 MockNewsService.Setup(ns => ns.AddNewsAsync(It.IsAny<Data.Models.News>())).ReturnsAsync(true);
 
-                var result = await Controller.AddNews(new Models.Api.Request.AddNewsRequest { Text = "Test News" });
-                var response = TestUtils.GetResponseFromResult<Models.Api.Response.AddNewsResponse>(result);
+                var result = await Controller.AddNews(new AddNewsRequest { Text = "Test News" });
+                var response = TestUtils.GetResponseFromResult<AddNewsResponse>(result);
 
                 Assert.IsTrue(response.Success);
                 Assert.AreEqual("Test News", response.NewsItem.Text);
@@ -135,7 +136,7 @@
                 MockNewsService.Setup(ns => ns.FindNewsByIdAsync(It.IsAny<int>())).ReturnsAsync(new Data.Models.News());
 
                 var result = await Controller.DeleteNews(1);
-                var response = TestUtils.GetResponseFromResult<Models.Api.Response.ApiResponse>(result);
+                var response = TestUtils.GetResponseFromResult<ApiResponse>(result);
 
                 Assert.IsFalse(response.Success);
             }
@@ -147,7 +148,7 @@
                 MockNewsService.Setup(ns => ns.DeleteNewsAsync(It.IsAny<Data.Models.News>())).ReturnsAsync(true);
 
                 var result = await Controller.DeleteNews(1);
-                var response = TestUtils.GetResponseFromResult<Models.Api.Response.DeleteNewsResponse>(result);
+                var response = TestUtils.GetResponseFromResult<DeleteNewsResponse>(result);
 
                 Assert.IsTrue(response.Success);
                 Assert.AreEqual(1, response.Id);
@@ -162,7 +163,7 @@
             {
                 MockNewsService.Setup(ns => ns.FindNewsByIdAsync(It.IsAny<int>())).ReturnsAsync((Data.Models.News)null);
 
-                var result = await Controller.SaveNews(1, new Models.Api.Request.AddNewsRequest());
+                var result = await Controller.SaveNews(1, new AddNewsRequest());
 
                 Assert.IsInstanceOfType(result, typeof(NotFoundResult));
             }
@@ -172,8 +173,8 @@
             {
                 MockNewsService.Setup(ns => ns.FindNewsByIdAsync(It.IsAny<int>())).ReturnsAsync(new Data.Models.News());
 
-                var result = await Controller.SaveNews(1, new Models.Api.Request.AddNewsRequest());
-                var response = TestUtils.GetResponseFromResult<Models.Api.Response.ApiResponse>(result);
+                var result = await Controller.SaveNews(1, new AddNewsRequest());
+                var response = TestUtils.GetResponseFromResult<ApiResponse>(result);
 
                 Assert.IsFalse(response.Success);
             }
@@ -184,8 +185,8 @@
                 MockNewsService.Setup(ns => ns.FindNewsByIdAsync(It.IsAny<int>())).ReturnsAsync(new Data.Models.News { Id = 1 });
                 MockNewsService.Setup(ns => ns.UpdateNewsAsync(It.IsAny<Data.Models.News>())).ReturnsAsync(true);
 
-                var result = await Controller.SaveNews(1, new Models.Api.Request.AddNewsRequest());
-                var response = TestUtils.GetResponseFromResult<Models.Api.Response.AddNewsResponse>(result);
+                var result = await Controller.SaveNews(1, new AddNewsRequest());
+                var response = TestUtils.GetResponseFromResult<AddNewsResponse>(result);
 
                 Assert.IsTrue(response.Success);
                 Assert.AreEqual(1, response.NewsItem.Id);
