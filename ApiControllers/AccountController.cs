@@ -65,7 +65,8 @@
                     EnableGravatar = request.EnableGravatar
                 },
                 EmailHash = request.Email.Md5Hash(),
-                RegisterIp = HttpContext.Connection.RemoteIpAddress.ToString()
+                RegisterIp = HttpContext.Connection.RemoteIpAddress.ToString(),
+                EmailConfirmed = !apiOptions.AccountVerification
             };
 
             var result = await userService.RegisterUserAsync(newUser, request.Password);
@@ -82,17 +83,20 @@
                 return BadRequest(ModelState);
             }
 
-            var callbackUrl = $"{HttpContext.Request.Scheme}://{HttpContext.Request.Host}/activation?id={newUser.Id}";
-            var verificationModel = new AccountVerificationModel
+            if (apiOptions.AccountVerification)
             {
-                VerificationUrl = callbackUrl,
-                SiteUrl = $"{HttpContext.Request.Scheme}://{HttpContext.Request.Host}"
-            };
+                var callbackUrl = $"{HttpContext.Request.Scheme}://{HttpContext.Request.Host}/activation?id={newUser.Id}";
+                var verificationModel = new AccountVerificationModel
+                {
+                    VerificationUrl = callbackUrl,
+                    SiteUrl = $"{HttpContext.Request.Scheme}://{HttpContext.Request.Host}"
+                };
 
-            var emailResult = await userService.SendActivationEmailAsync(newUser, verificationModel);
-            if (!emailResult)
-            {
-                logger.LogError($"Error sending activation email for {newUser.UserName}");
+                var emailResult = await userService.SendActivationEmailAsync(newUser, verificationModel);
+                if (!emailResult)
+                {
+                    logger.LogError($"Error sending activation email for {newUser.UserName}");
+                }
             }
 
             var stringToHash = newUser.Settings.EnableGravatar ? newUser.EmailHash : GetRandomString(32);
@@ -100,7 +104,7 @@
 
             logger.LogDebug($"Registered new account: '{newUser.UserName}'");
 
-            return this.SuccessResponse();
+            return this.SuccessResponse(apiOptions.AccountVerification ? "Your account was successfully registered.  Please verify your account using the link in the email sent to the address you have provided." : "Your account was successfully registered.");
         }
 
         [HttpPost]

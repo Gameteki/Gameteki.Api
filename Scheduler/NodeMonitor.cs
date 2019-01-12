@@ -34,6 +34,8 @@
 
         public async Task Execute(IJobExecutionContext context)
         {
+            var toRemove = new List<string>();
+
             foreach (var (nodeName, lastHeartbeat) in nodeLastHeartbeat)
             {
                 if (DateTime.UtcNow - lastHeartbeat < TimeSpan.FromMinutes(2))
@@ -47,6 +49,12 @@
 
                 nodeUsers[nodeName].Clear();
                 nodeUsers.Remove(nodeName);
+                toRemove.Add(nodeName);
+            }
+
+            foreach (var node in toRemove)
+            {
+                nodeLastHeartbeat.Remove(node);
             }
         }
 

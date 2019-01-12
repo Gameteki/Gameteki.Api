@@ -6,5 +6,6 @@
         public string ApplicationName { get; set; }
         public string RedisUrl { get; set; }
         public string ImagePath { get; set; }
+        public bool AccountVerification { get; set; }
     }
 }

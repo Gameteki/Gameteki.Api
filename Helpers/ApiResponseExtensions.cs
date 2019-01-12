@@ -14,9 +14,9 @@
             });
         }
 
-        public static JsonResult SuccessResponse(this Controller controller)
+        public static JsonResult SuccessResponse(this Controller controller, string message = null)
         {
-            return new JsonResult(new ApiResponse { Success = true });
+            return new JsonResult(new ApiResponse { Success = true, Message = message });
         }
     }
 }

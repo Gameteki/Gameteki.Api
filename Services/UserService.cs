@@ -582,6 +582,9 @@
                 expires: DateTime.UtcNow.AddMinutes(value: 5),
                 signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256));
 
+            jwt.Payload["UserData"] = user.ToApiUser();
+            jwt.Payload["BlockList"] = user.BlockList;
+
             return new JwtSecurityTokenHandler().WriteToken(jwt);
         }
 

@@ -64,6 +64,7 @@
             var generalConfig = generalSection.Get<GametekiApiOptions>();
 
             services.AddScoped<DbContext, GametekiDbContext>();
+
             services.AddTransient<UserManager<GametekiUser>>();
             services.AddTransient<IRoleStore<GametekiRole>, RoleStore<GametekiRole>>();
             services.AddTransient<RoleManager<GametekiRole>>();
@@ -72,16 +73,17 @@
             services.AddTransient<IEmailSender, EmailSender>();
             services.AddTransient<IMessageService, MessageService>();
             services.AddTransient<IViewRenderService, ViewRenderService>();
+
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
             services.AddSingleton<IActionContextAccessor, ActionContextAccessor>();
+            services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(generalConfig.RedisUrl));
             services.AddSingleton<IJobFactory, JobFactory>();
             services.AddSingleton<IHttpClient, HttpClientWrapper>();
             services.AddSingleton<NodeMonitor>();
+
             services.Configure<AuthMessageSenderOptions>(configuration);
             services.Configure<AuthTokenOptions>(configuration.GetSection("Tokens"));
             services.Configure<GametekiApiOptions>(generalSection);
-
-            services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(generalConfig.RedisUrl));
         }
 
         private static void ConfigureMvc(IServiceCollection services, IConfiguration configuration)
