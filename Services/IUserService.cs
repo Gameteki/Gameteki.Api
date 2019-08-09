@@ -3,13 +3,12 @@
     using System.Threading.Tasks;
     using CrimsonDev.Gameteki.Api.Models;
     using CrimsonDev.Gameteki.Data.Models;
+    using CrimsonDev.Gameteki.Data.Models.Api;
     using Microsoft.AspNetCore.Identity;
 
     public interface IUserService
     {
-        Task<bool> IsUsernameInUseAsync(string username);
-        Task<bool> IsEmailInUseAsync(string email);
-        Task<IdentityResult> RegisterUserAsync(GametekiUser user, string password);
+        Task<RegisterAccountResult> RegisterUserAsync(RegisterAccountRequest request, string ipAddress);
         Task<bool> SendActivationEmailAsync(GametekiUser user, AccountVerificationModel model);
         Task<bool> ValidateUserAsync(string userId, string token);
         Task<LoginResult> LoginUserAsync(string username, string password, string ipAddress);

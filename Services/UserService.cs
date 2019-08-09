@@ -13,6 +13,7 @@
     using CrimsonDev.Gameteki.Data;
     using CrimsonDev.Gameteki.Data.Constants;
     using CrimsonDev.Gameteki.Data.Models;
+    using CrimsonDev.Gameteki.Data.Models.Api;
     using CrimsonDev.Gameteki.Data.Models.Config;
     using Microsoft.AspNetCore.Identity;
     using Microsoft.AspNetCore.Identity.UI.Services;
@@ -50,35 +51,51 @@
             tokenOptions = optionsAccessor.Value;
         }
 
-        public async Task<bool> IsUsernameInUseAsync(string username)
+        public async Task<RegisterAccountResult> RegisterUserAsync(RegisterAccountRequest request, string ipAddress)
         {
-            return await context.Users.AnyAsync(u => u.UserName.Equals(username, StringComparison.InvariantCultureIgnoreCase));
-        }
+            if (await IsEmailInUseAsync(request.Email))
+            {
+                logger.LogDebug($"Request to register account with email '{request.Email}' already in use");
+                return RegisterAccountResult.Failed("An account with that email already exists, please use another.", "email");
+            }
 
-        public async Task<bool> IsEmailInUseAsync(string email)
-        {
-            return await context.Users.AnyAsync(u => u.Email.Equals(email, StringComparison.InvariantCultureIgnoreCase));
-        }
+            if (await IsUsernameInUseAsync(request.Username))
+            {
+                logger.LogDebug($"Request to register account with name '{request.Username}' already in use");
+                return RegisterAccountResult.Failed("An account with that name already exists, please choose another.", "username");
+            }
 
-        public async Task<IdentityResult> RegisterUserAsync(GametekiUser user, string password)
-        {
+            var newUser = new GametekiUser
+            {
+                Email = request.Email,
+                UserName = request.Username,
+                LockoutEnabled = true,
+                RegisteredDate = DateTime.UtcNow,
+                Settings = new UserSettings
+                {
+                    EnableGravatar = request.EnableGravatar
+                },
+                EmailHash = request.Email.Md5Hash(),
+                RegisterIp = ipAddress,
+                EmailConfirmed = !apiOptions.AccountVerification
+            };
+
             try
             {
-                var result = await userManager.CreateAsync(user, password);
+                var result = await userManager.CreateAsync(newUser, request.Password);
                 if (!result.Succeeded)
                 {
-                    logger.LogError($"Failed to register user '{user.UserName}': {result.Errors.Aggregate(string.Empty, (prev, error) => prev + $" ({error.Code}) - {error.Description}")}");
-                    return result;
+                    logger.LogError($"Failed to register user '{newUser.UserName}': {result.Errors.Aggregate(string.Empty, (prev, error) => prev + $" ({error.Code}) - {error.Description}")}");
+                    return RegisterAccountResult.Failed(result.Errors.Aggregate(string.Empty, (prev, error) => prev + $" {error.Description}"));
                 }
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, $"Failed to register user '{user.UserName}'");
-                return IdentityResult.Failed(new IdentityError
-                    { Code = "InternalError", Description = "An error occurred registering the user" });
+                logger.LogError(ex, $"Failed to register user '{newUser.UserName}'");
+                return RegisterAccountResult.Failed("An error occurred registering the user");
             }
 
-            return IdentityResult.Success;
+            return RegisterAccountResult.Succeeded(newUser);
         }
 
         public async Task<bool> SendActivationEmailAsync(GametekiUser user, AccountVerificationModel model)
@@ -565,6 +582,16 @@
             {
                 toAdd.Add(roleName);
             }
+        }
+
+        private Task<bool> IsUsernameInUseAsync(string username)
+        {
+            return context.Users.AnyAsync(u => u.UserName.Equals(username, StringComparison.InvariantCultureIgnoreCase));
+        }
+
+        private Task<bool> IsEmailInUseAsync(string email)
+        {
+            return context.Users.AnyAsync(u => u.Email.Equals(email, StringComparison.InvariantCultureIgnoreCase));
         }
 
         private string GenerateTokenForUser(GametekiUser user)

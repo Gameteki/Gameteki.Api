@@ -8,7 +8,6 @@
     using CrimsonDev.Gameteki.Api.Helpers;
     using CrimsonDev.Gameteki.Api.Models;
     using CrimsonDev.Gameteki.Api.Services;
-    using CrimsonDev.Gameteki.Data.Models;
     using CrimsonDev.Gameteki.Data.Models.Api;
     using CrimsonDev.Gameteki.Data.Models.Config;
     using Microsoft.AspNetCore.Authorization;
@@ -37,47 +36,15 @@
         [Route("api/account/register")]
         public async Task<IActionResult> RegisterAccount(RegisterAccountRequest request)
         {
-            if (await userService.IsEmailInUseAsync(request.Email))
-            {
-                ModelState.AddModelError("email", "An account with that email already exists, please use another.");
-                logger.LogDebug($"Request to register account with email '{request.Email}' already in use");
-            }
+            var result = await userService.RegisterUserAsync(request, HttpContext.Connection.RemoteIpAddress.ToString());
 
-            if (await userService.IsUsernameInUseAsync(request.Username))
+            if (!result.Success)
             {
-                ModelState.AddModelError("username", "An account with that name already exists, please choose another.");
-                logger.LogDebug($"Request to register account with name '{request.Username}' already in use");
-            }
+                logger.LogError($"Failed to register account {result.Errors.Aggregate(string.Empty, (prev, error) => prev + $" {error.Value}")}");
 
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            var newUser = new GametekiUser
-            {
-                Email = request.Email,
-                UserName = request.Username,
-                LockoutEnabled = true,
-                RegisteredDate = DateTime.UtcNow,
-                Settings = new UserSettings
+                foreach (var (field, message) in result.Errors)
                 {
-                    EnableGravatar = request.EnableGravatar
-                },
-                EmailHash = request.Email.Md5Hash(),
-                RegisterIp = HttpContext.Connection.RemoteIpAddress.ToString(),
-                EmailConfirmed = !apiOptions.AccountVerification
-            };
-
-            var result = await userService.RegisterUserAsync(newUser, request.Password);
-
-            if (!result.Succeeded)
-            {
-                logger.LogError("Failed to register account, validation error");
-
-                foreach (var error in result.Errors)
-                {
-                    ModelState.AddModelError(string.Empty, error.Description);
+                    ModelState.AddModelError(field, message);
                 }
 
                 return BadRequest(ModelState);
@@ -85,24 +52,24 @@
 
             if (apiOptions.AccountVerification)
             {
-                var callbackUrl = $"{HttpContext.Request.Scheme}://{HttpContext.Request.Host}/activation?id={newUser.Id}";
+                var callbackUrl = $"{HttpContext.Request.Scheme}://{HttpContext.Request.Host}/activation?id={result.User.Id}";
                 var verificationModel = new AccountVerificationModel
                 {
                     VerificationUrl = callbackUrl,
                     SiteUrl = $"{HttpContext.Request.Scheme}://{HttpContext.Request.Host}"
                 };
 
-                var emailResult = await userService.SendActivationEmailAsync(newUser, verificationModel);
+                var emailResult = await userService.SendActivationEmailAsync(result.User, verificationModel);
                 if (!emailResult)
                 {
-                    logger.LogError($"Error sending activation email for {newUser.UserName}");
+                    logger.LogError($"Error sending activation email for {result.User.UserName}");
                 }
             }
 
-            var stringToHash = newUser.Settings.EnableGravatar ? newUser.EmailHash : GetRandomString(32);
-            await httpClient.DownloadFileAsync($"https://www.gravatar.com/avatar/{stringToHash}?d=identicon&s=24", Path.Combine(apiOptions.ImagePath, "avatar", $"{newUser.UserName}.png"));
+            var stringToHash = result.User.Settings.EnableGravatar ? result.User.EmailHash : GetRandomString(32);
+            await httpClient.DownloadFileAsync($"https://www.gravatar.com/avatar/{stringToHash}?d=identicon&s=24", Path.Combine(apiOptions.ImagePath, "avatar", $"{result.User.UserName}.png"));
 
-            logger.LogDebug($"Registered new account: '{newUser.UserName}'");
+            logger.LogDebug($"Registered new account: '{result.User.UserName}'");
 
             return this.SuccessResponse(apiOptions.AccountVerification ? "Your account was successfully registered.  Please verify your account using the link in the email sent to the address you have provided." : "Your account was successfully registered.");
         }

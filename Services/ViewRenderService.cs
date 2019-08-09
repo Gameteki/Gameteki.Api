@@ -3,6 +3,7 @@
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;
+    using System.Diagnostics.CodeAnalysis;
     using System.IO;
     using System.Text.Encodings.Web;
     using System.Threading.Tasks;
@@ -16,6 +17,7 @@
     using Microsoft.AspNetCore.Mvc.ViewFeatures;
     using Microsoft.AspNetCore.Routing;
 
+    [ExcludeFromCodeCoverage]
     internal class ViewRenderService : IViewRenderService
     {
         private readonly IRazorViewEngine razorViewEngine;

@@ -5,11 +5,13 @@ namespace CrimsonDev.Gameteki.Api.Tests.Controllers
     using System.IO;
     using System.Linq;
     using System.Net;
+    using System.Runtime.CompilerServices;
     using System.Security.Claims;
     using System.Security.Principal;
     using System.Threading.Tasks;
     using CrimsonDev.Gameteki.Api.ApiControllers;
     using CrimsonDev.Gameteki.Api.Helpers;
+    using CrimsonDev.Gameteki.Api.Models;
     using CrimsonDev.Gameteki.Api.Services;
     using CrimsonDev.Gameteki.Api.Tests.Helpers;
     using CrimsonDev.Gameteki.Data.Models;
@@ -62,28 +64,6 @@ namespace CrimsonDev.Gameteki.Api.Tests.Controllers
         public class RegisterAccount : AccountControllerTests
         {
             [TestMethod]
-            public async Task WhenEmailIsInUseThenReturnsError()
-            {
-                UserServiceMock.Setup(us => us.IsEmailInUseAsync(It.IsAny<string>())).ReturnsAsync(true);
-
-                var result = await Controller.RegisterAccount(new RegisterAccountRequest());
-                var errorValue = TestUtils.GetValueFromResultObject<BadRequestObjectResult, SerializableError>(result);
-
-                CollectionAssert.Contains(errorValue.Keys, "email");
-            }
-
-            [TestMethod]
-            public async Task WhenUsernameIsInUseReturnsError()
-            {
-                UserServiceMock.Setup(us => us.IsUsernameInUseAsync(It.IsAny<string>())).ReturnsAsync(true);
-
-                var result = await Controller.RegisterAccount(new RegisterAccountRequest());
-                var errorValue = TestUtils.GetValueFromResultObject<BadRequestObjectResult, SerializableError>(result);
-
-                CollectionAssert.Contains(errorValue.Keys, "username");
-            }
-
-            [TestMethod]
             public async Task WhenRegisterReturnsFailedReturnsError()
             {
                 var request = new RegisterAccountRequest
@@ -91,9 +71,9 @@ namespace CrimsonDev.Gameteki.Api.Tests.Controllers
                     Email = "test@example.com"
                 };
 
-                UserServiceMock.Setup(us => us.RegisterUserAsync(It.IsAny<GametekiUser>(), It.IsAny<string>()))
-                    .ReturnsAsync(
-                        IdentityResult.Failed(new IdentityError { Code = "Test", Description = "Test Error" }));
+                UserServiceMock
+                    .Setup(us => us.RegisterUserAsync(It.IsAny<RegisterAccountRequest>(), It.IsAny<string>()))
+                    .ReturnsAsync(RegisterAccountResult.Failed("Test Error"));
 
                 var result = await Controller.RegisterAccount(request);
                 var errorValue = TestUtils.GetValueFromResultObject<BadRequestObjectResult, SerializableError>(result);
@@ -109,13 +89,60 @@ namespace CrimsonDev.Gameteki.Api.Tests.Controllers
                     Email = "test@example.com"
                 };
 
-                UserServiceMock.Setup(us => us.RegisterUserAsync(It.IsAny<GametekiUser>(), It.IsAny<string>()))
-                    .ReturnsAsync(IdentityResult.Success);
+                UserServiceMock
+                    .Setup(us => us.RegisterUserAsync(It.IsAny<RegisterAccountRequest>(), It.IsAny<string>()))
+                    .ReturnsAsync(RegisterAccountResult.Succeeded(new GametekiUser { Settings = new UserSettings() }));
 
                 var result = await Controller.RegisterAccount(request);
                 var response = TestUtils.GetResponseFromResult<ApiResponse>(result);
 
                 Assert.IsTrue(response.Success);
+            }
+
+            [TestMethod]
+            public async Task WhenActivationDisabledDontSendVerificationEmail()
+            {
+                var request = new RegisterAccountRequest
+                {
+                    Email = "test@example.com"
+                };
+
+                ApiOptions.Value.AccountVerification = false;
+
+                UserServiceMock
+                    .Setup(us => us.RegisterUserAsync(It.IsAny<RegisterAccountRequest>(), It.IsAny<string>()))
+                    .ReturnsAsync(RegisterAccountResult.Succeeded(new GametekiUser { Settings = new UserSettings() }));
+
+                var result = await Controller.RegisterAccount(request);
+                var response = TestUtils.GetResponseFromResult<ApiResponse>(result);
+
+                Assert.IsTrue(response.Success);
+                UserServiceMock.Verify(
+                    us => us.SendActivationEmailAsync(It.IsAny<GametekiUser>(), It.IsAny<AccountVerificationModel>()),
+                    Times.Never);
+            }
+
+            [TestMethod]
+            public async Task WhenActivationEnabledSendVerificationEmail()
+            {
+                var request = new RegisterAccountRequest
+                {
+                    Email = "test@example.com"
+                };
+
+                ApiOptions.Value.AccountVerification = true;
+
+                UserServiceMock
+                    .Setup(us => us.RegisterUserAsync(It.IsAny<RegisterAccountRequest>(), It.IsAny<string>()))
+                    .ReturnsAsync(RegisterAccountResult.Succeeded(new GametekiUser { Settings = new UserSettings() }));
+
+                var result = await Controller.RegisterAccount(request);
+                var response = TestUtils.GetResponseFromResult<ApiResponse>(result);
+
+                Assert.IsTrue(response.Success);
+                UserServiceMock.Verify(
+                    us => us.SendActivationEmailAsync(It.IsAny<GametekiUser>(), It.IsAny<AccountVerificationModel>()),
+                    Times.Once);
             }
         }
 

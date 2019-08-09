@@ -10,10 +10,21 @@ namespace CrimsonDev.Gameteki.Api.Tests.Helpers
 
     public static class TestUtils
     {
-        public static Data.Models.GametekiUser GetRandomUser()
+        public static RegisterAccountRequest GetRandomAccount()
         {
             var faker = new Faker();
-            return new Data.Models.GametekiUser
+            return new RegisterAccountRequest
+            {
+                Email = faker.Person.Email,
+                Password = faker.Internet.Password(),
+                Username = faker.Internet.UserName()
+            };
+        }
+
+        public static GametekiUser GetRandomUser()
+        {
+            var faker = new Faker();
+            return new GametekiUser
             {
                 RefreshTokens = new List<RefreshToken>(),
                 UserRoles = new List<GametekiUserRole>(),
