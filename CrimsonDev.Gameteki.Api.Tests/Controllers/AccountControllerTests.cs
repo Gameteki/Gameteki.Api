@@ -5,7 +5,6 @@ namespace CrimsonDev.Gameteki.Api.Tests.Controllers
     using System.IO;
     using System.Linq;
     using System.Net;
-    using System.Runtime.CompilerServices;
     using System.Security.Claims;
     using System.Security.Principal;
     using System.Threading.Tasks;
