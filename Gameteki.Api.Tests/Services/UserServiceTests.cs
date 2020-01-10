@@ -2,13 +2,11 @@
 {
     using System;
     using System.Collections.Generic;
-    using System.Data;
     using System.Diagnostics.CodeAnalysis;
     using System.IdentityModel.Tokens.Jwt;
     using System.Linq;
     using System.Security.Claims;
     using System.Text;
-    using System.Threading;
     using System.Threading.Tasks;
     using CrimsonDev.Gameteki.Api.Models;
     using CrimsonDev.Gameteki.Api.Services;
@@ -19,6 +17,7 @@
     using CrimsonDev.Gameteki.Data.Models.Config;
     using Microsoft.AspNetCore.Identity;
     using Microsoft.AspNetCore.Identity.UI.Services;
+    using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Options;
     using Microsoft.IdentityModel.Tokens;
@@ -29,7 +28,7 @@
     [ExcludeFromCodeCoverage]
     public class UserServiceTests
     {
-        private Mock<IGametekiDbContext> DbContextMock { get; set; }
+        private IGametekiDbContext DbContext { get; set; }
         private Mock<IUserStore<GametekiUser>> UserStoreMock { get; set; }
         private Mock<UserManager<GametekiUser>> UserManagerMock { get; set; }
         private Mock<IOptions<AuthTokenOptions>> AuthTokenOptionsMock { get; set; }
@@ -43,9 +42,15 @@
         private IUserService Service { get; set; }
 
         [TestInitialize]
-        public void SetupTest()
+        public async Task SetupTest()
         {
-            DbContextMock = new Mock<IGametekiDbContext>();
+            var options = new DbContextOptionsBuilder<GametekiDbContext>()
+                .UseInMemoryDatabase(databaseName: "UserServiceTests")
+                .Options;
+            DbContext = new GametekiDbContext(options);
+
+            await DbContext.Database.EnsureDeletedAsync();
+
             UserStoreMock = new Mock<IUserStore<GametekiUser>>();
             UserManagerMock = new Mock<UserManager<GametekiUser>>(UserStoreMock.Object, null, null, null, null, null, null, null, null);
             AuthTokenOptionsMock = new Mock<IOptions<AuthTokenOptions>>();
@@ -67,10 +72,15 @@
                 TestUsers.Add(TestUtils.GetRandomUser());
             }
 
-            DbContextMock.Setup(context => context.Users).Returns(TestUsers.ToMockDbSet().Object);
+            var roles = new[] { new GametekiRole(Roles.GameManager), new GametekiRole(Roles.NewsManager), new GametekiRole(Roles.UserManager) };
+
+            DbContext.Roles.AddRange(roles);
+
+            DbContext.Users.AddRange(TestUsers);
+            await DbContext.SaveChangesAsync();
 
             Service = new UserService(
-                DbContextMock.Object,
+                DbContext,
                 UserManagerMock.Object,
                 AuthTokenOptionsMock.Object,
                 GametekiOptionsMock.Object,
@@ -277,10 +287,6 @@
             {
                 var user = TestUsers.First();
 
-                DbContextMock.Setup(c => c.RefreshToken).Returns(new List<RefreshToken>().ToMockDbSet().Object);
-                DbContextMock.Setup(c => c.BlockListEntry).Returns(new List<BlockListEntry>().ToMockDbSet().Object);
-                DbContextMock.Setup(c => c.Users).Returns(new List<GametekiUser> { user }.ToMockDbSet().Object);
-
                 UserManagerMock.Setup(um => um.CheckPasswordAsync(It.IsAny<GametekiUser>(), It.IsAny<string>())).ReturnsAsync(false);
 
                 var result = await Service.LoginUserAsync(user.UserName, "password", "127.0.0.1");
@@ -294,10 +300,6 @@
                 var user = TestUsers.First();
                 user.Disabled = true;
 
-                DbContextMock.Setup(c => c.RefreshToken).Returns(new List<RefreshToken>().ToMockDbSet().Object);
-                DbContextMock.Setup(c => c.Users).Returns(new List<GametekiUser> { user }.ToMockDbSet().Object);
-                DbContextMock.Setup(c => c.BlockListEntry).Returns(new List<BlockListEntry>().ToMockDbSet().Object);
-
                 UserManagerMock.Setup(um => um.CheckPasswordAsync(It.IsAny<GametekiUser>(), It.IsAny<string>())).ReturnsAsync(true);
 
                 var result = await Service.LoginUserAsync(user.UserName, "password", "127.0.0.1");
@@ -309,9 +311,6 @@
             public async Task WhenCorrectPasswordReturnsResult()
             {
                 var user = TestUsers.First();
-
-                DbContextMock.Setup(c => c.RefreshToken).Returns(new List<RefreshToken>().ToMockDbSet().Object);
-                DbContextMock.Setup(c => c.BlockListEntry).Returns(new List<BlockListEntry>().ToMockDbSet().Object);
 
                 UserManagerMock.Setup(um => um.CheckPasswordAsync(It.IsAny<GametekiUser>(), It.IsAny<string>())).ReturnsAsync(true);
 
@@ -346,21 +345,10 @@
             }
 
             [TestMethod]
-            public async Task WhenDatabaseExceptionReturnsNull()
-            {
-                DbContextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ThrowsAsync(new DBConcurrencyException());
-
-                var result = await Service.CreateRefreshTokenAsync(TestUtils.GetRandomUser(), "127.0.0.1");
-
-                Assert.IsNull(result);
-            }
-
-            [TestMethod]
             public async Task WhenSuccessfulReturnsToken()
             {
                 var user = TestUsers.First();
-                DbContextMock.Setup(c => c.RefreshToken).Returns(new List<RefreshToken>().ToMockDbSet().Object);
-
+                
                 var result = await Service.CreateRefreshTokenAsync(user, "127.0.0.1");
 
                 Assert.IsNotNull(result);
@@ -385,9 +373,6 @@
             [TestMethod]
             public async Task WhenUserNotFoundReturnsNull()
             {
-                DbContextMock.Setup(c => c.RefreshToken).Returns(new List<RefreshToken>().ToMockDbSet().Object);
-                DbContextMock.Setup(c => c.BlockListEntry).Returns(new List<BlockListEntry>().ToMockDbSet().Object);
-
                 var result = await Service.GetUserFromUsernameAsync("NotFound");
 
                 Assert.IsNull(result);
@@ -397,9 +382,6 @@
             public async Task WhenUserFoundReturnsUser()
             {
                 var user = TestUsers.First();
-
-                DbContextMock.Setup(c => c.RefreshToken).Returns(new List<RefreshToken>().ToMockDbSet().Object);
-                DbContextMock.Setup(c => c.BlockListEntry).Returns(new List<BlockListEntry>().ToMockDbSet().Object);
 
                 var result = await Service.GetUserFromUsernameAsync(user.UserName);
 
@@ -449,11 +431,10 @@
             [TestMethod]
             public async Task WhenNoTokensForUserReturnsNull()
             {
-                var tokens = new List<RefreshToken>
-                    { new RefreshToken { Token = "RefreshToken", User = TestUtils.GetRandomUser() } };
                 var token = GenerateTokenForUser("TestUser", AuthTokenOptionsMock.Object.Value.Issuer, AuthTokenOptionsMock.Object.Value.Key);
 
-                DbContextMock.Setup(c => c.RefreshToken).Returns(tokens.ToMockDbSet().Object);
+                DbContext.RefreshToken.Add(new RefreshToken { Token = "RefreshToken", User = TestUsers.ElementAt(7) });
+                await DbContext.SaveChangesAsync();
 
                 var result = await Service.RefreshTokenAsync(token, "RefreshToken", "127.0.0.1");
 
@@ -463,32 +444,10 @@
             [TestMethod]
             public async Task WhenNoMatchingTokenReturnsNull()
             {
-                var tokens = new List<RefreshToken>
-                    { new RefreshToken { Token = "SomeRandomString", User = TestUtils.GetRandomUser() } };
                 var token = GenerateTokenForUser("TestUser", AuthTokenOptionsMock.Object.Value.Issuer, AuthTokenOptionsMock.Object.Value.Key);
-                DbContextMock.Setup(c => c.RefreshToken).Returns(tokens.ToMockDbSet().Object);
 
-                var result = await Service.RefreshTokenAsync(token, "RefreshToken", "127.0.0.1");
-
-                Assert.IsNull(result);
-            }
-
-            [TestMethod]
-            public async Task WhenRefreshTokenUpdateFailsReturnsNull()
-            {
-                var user = TestUtils.GetRandomUser();
-                var tokens = new List<RefreshToken>
-                {
-                    new RefreshToken
-                    {
-                        Token = "RefreshToken",
-                        User = user
-                    }
-                };
-                var token = GenerateTokenForUser(user.UserName, AuthTokenOptionsMock.Object.Value.Issuer, AuthTokenOptionsMock.Object.Value.Key);
-
-                DbContextMock.Setup(c => c.RefreshToken).Returns(tokens.ToMockDbSet().Object);
-                DbContextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ThrowsAsync(new DBConcurrencyException());
+                DbContext.RefreshToken.Add(new RefreshToken { Token = "SomeRandomString", User = TestUsers.ElementAt(8) });
+                await DbContext.SaveChangesAsync();
 
                 var result = await Service.RefreshTokenAsync(token, "RefreshToken", "127.0.0.1");
 
@@ -500,10 +459,10 @@
             {
                 var user = TestUsers.First();
                 user.UserRoles.Add(new GametekiUserRole { Role = new GametekiRole { Name = "Role" }, User = user });
-                var tokens = new List<RefreshToken> { new RefreshToken { Token = "RefreshToken", User = user } };
                 var token = GenerateTokenForUser(user.UserName, AuthTokenOptionsMock.Object.Value.Issuer, AuthTokenOptionsMock.Object.Value.Key);
 
-                DbContextMock.Setup(c => c.RefreshToken).Returns(tokens.ToMockDbSet().Object);
+                DbContext.RefreshToken.Add(new RefreshToken { Token = "RefreshToken", User = TestUsers.First() });
+                await DbContext.SaveChangesAsync();
 
                 var result = await Service.RefreshTokenAsync(token, "RefreshToken", "127.0.0.1");
 
@@ -531,19 +490,9 @@
             }
 
             [TestMethod]
-            public async Task WhenSaveChangesFailsReturnsFalse()
-            {
-                DbContextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ThrowsAsync(new Exception());
-
-                var result = await Service.UpdatePermissionsAsync(TestUtils.GetRandomUser(), new Permissions());
-
-                Assert.IsFalse(result);
-            }
-
-            [TestMethod]
             public async Task WhenPermissionsAddedCallsAdd()
             {
-                var user = TestUtils.GetRandomUser();
+                var user = TestUsers.First();
                 var newPermissions = new Permissions
                 {
                     CanEditNews = true,
@@ -551,16 +500,10 @@
                     CanManageGames = true
                 };
 
-                DbContextMock.Setup(c => c.Roles).Returns(new List<GametekiRole>
-                {
-                    new GametekiRole { Name = Roles.NewsManager },
-                    new GametekiRole { Name = Roles.UserManager }
-                }.ToMockDbSet().Object);
-
                 var result = await Service.UpdatePermissionsAsync(user, newPermissions);
 
                 Assert.IsTrue(result);
-                Assert.AreEqual(2, user.UserRoles.Count);
+                Assert.AreEqual(3, user.UserRoles.Count);
             }
 
             [TestMethod]
@@ -573,12 +516,6 @@
                     new GametekiUserRole { Role = new GametekiRole(Roles.UserManager) },
                     new GametekiUserRole { Role = new GametekiRole(Roles.ChatManager) }
                 };
-
-                DbContextMock.Setup(c => c.Roles).Returns(new List<GametekiRole>
-                {
-                    new GametekiRole { Name = Roles.NewsManager },
-                    new GametekiRole { Name = Roles.UserManager }
-                }.ToMockDbSet().Object);
 
                 var result = await Service.UpdatePermissionsAsync(user, new Permissions());
 
@@ -615,27 +552,6 @@
             [TestMethod]
             public async Task WhenRefreshTokenNotFoundReturnsFalse()
             {
-                DbContextMock.Setup(c => c.RefreshToken).Returns(new List<RefreshToken>
-                {
-                    new RefreshToken { Token = "RefreshToken", User = new GametekiUser { UserName = "NotFound" } }
-                }.ToMockDbSet().Object);
-
-                var result = await Service.LogoutUserAsync(
-                    GenerateTokenForUser("TestUser", AuthTokenOptionsMock.Object.Value.Issuer, AuthTokenOptionsMock.Object.Value.Key),
-                    "RefreshToken");
-
-                Assert.IsFalse(result);
-            }
-
-            [TestMethod]
-            public async Task WhenSaveChangesFailsReturnsFalse()
-            {
-                DbContextMock.Setup(c => c.RefreshToken).Returns(new List<RefreshToken>
-                {
-                    new RefreshToken { Token = "RefreshToken", User = new GametekiUser { UserName = "TestUser" } }
-                }.ToMockDbSet().Object);
-                DbContextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ThrowsAsync(new Exception());
-
                 var result = await Service.LogoutUserAsync(
                     GenerateTokenForUser("TestUser", AuthTokenOptionsMock.Object.Value.Issuer, AuthTokenOptionsMock.Object.Value.Key),
                     "RefreshToken");
@@ -646,14 +562,11 @@
             [TestMethod]
             public async Task WhenSucceedsReturnsTrue()
             {
-                DbContextMock.Setup(c => c.RefreshToken).Returns(new List<RefreshToken>
-                {
-                    new RefreshToken { Token = "RefreshToken", User = new GametekiUser { UserName = "TestUser" } }
-                }.ToMockDbSet().Object);
+                DbContext.RefreshToken.Add(new RefreshToken { Token = "RefreshToken", User = TestUsers.First() });
+                await DbContext.SaveChangesAsync();
 
                 var result = await Service.LogoutUserAsync(
-                    GenerateTokenForUser("TestUser", AuthTokenOptionsMock.Object.Value.Issuer, AuthTokenOptionsMock.Object.Value.Key),
-                    "RefreshToken");
+                    GenerateTokenForUser(TestUsers.First().UserName, AuthTokenOptionsMock.Object.Value.Issuer, AuthTokenOptionsMock.Object.Value.Key), "RefreshToken");
 
                 Assert.IsTrue(result);
             }
@@ -667,16 +580,6 @@
             public async Task WhenUserIsNullThrowsException()
             {
                 await Service.UpdateUserAsync(null);
-            }
-
-            [TestMethod]
-            public async Task WhenUpdateFailsReturnsFalse()
-            {
-                DbContextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ThrowsAsync(new Exception());
-
-                var result = await Service.UpdateUserAsync(new GametekiUser());
-
-                Assert.IsFalse(result.Succeeded);
             }
 
             [TestMethod]
@@ -726,21 +629,8 @@
             }
 
             [TestMethod]
-            public async Task WhenAddFailsReturnsFalse()
-            {
-                DbContextMock.Setup(c => c.BlockListEntry).Returns(new List<BlockListEntry>().ToMockDbSet().Object);
-                DbContextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ThrowsAsync(new Exception());
-
-                var result = await Service.AddBlockListEntryAsync(new GametekiUser(), "Test");
-
-                Assert.IsFalse(result);
-            }
-
-            [TestMethod]
             public async Task WhenAddSucceedsReturnsTrue()
             {
-                DbContextMock.Setup(c => c.BlockListEntry).Returns(new List<BlockListEntry>().ToMockDbSet().Object);
-
                 var result = await Service.AddBlockListEntryAsync(new GametekiUser(), "Test");
 
                 Assert.IsTrue(result);
@@ -765,22 +655,12 @@
             }
 
             [TestMethod]
-            public async Task WhenDeleteFailsReturnsFalse()
-            {
-                DbContextMock.Setup(c => c.BlockListEntry).Returns(new List<BlockListEntry>().ToMockDbSet().Object);
-                DbContextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ThrowsAsync(new Exception());
-
-                var result = await Service.RemoveBlockListEntryAsync(new GametekiUser(), "Test");
-
-                Assert.IsFalse(result);
-            }
-
-            [TestMethod]
             public async Task WhenDeleteSucceedsReturnsTrue()
             {
-                DbContextMock.Setup(c => c.BlockListEntry).Returns(new List<BlockListEntry>().ToMockDbSet().Object);
-
-                var result = await Service.RemoveBlockListEntryAsync(new GametekiUser(), "Test");
+                TestUsers[0].BlockList.Add(new BlockListEntry
+                    { BlockedUser = TestUsers[1].UserName, User = TestUsers[0] });
+                await DbContext.SaveChangesAsync();
+                var result = await Service.RemoveBlockListEntryAsync(TestUsers[0], TestUsers[1].UserName);
 
                 Assert.IsTrue(result);
             }
@@ -794,16 +674,6 @@
             public async Task WhenUserIsNullThrowsException()
             {
                 await Service.ClearRefreshTokensAsync(null);
-            }
-
-            [TestMethod]
-            public async Task WhenSaveFailsReturnsFalse()
-            {
-                DbContextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ThrowsAsync(new Exception());
-
-                var result = await Service.ClearRefreshTokensAsync(new GametekiUser { RefreshTokens = new List<RefreshToken>() });
-
-                Assert.IsFalse(result);
             }
 
             [TestMethod]
@@ -826,22 +696,14 @@
             }
 
             [TestMethod]
-            public async Task WhenSaveFailsReturnsFalse()
-            {
-                DbContextMock.Setup(c => c.RefreshToken).Returns(new List<RefreshToken>().ToMockDbSet().Object);
-                DbContextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ThrowsAsync(new Exception());
-
-                var result = await Service.DeleteRefreshTokenAsync(new RefreshToken());
-
-                Assert.IsFalse(result);
-            }
-
-            [TestMethod]
             public async Task WhenSaveSucceedsReturnsTrue()
             {
-                DbContextMock.Setup(c => c.RefreshToken).Returns(new List<RefreshToken>().ToMockDbSet().Object);
+                var token = new RefreshToken { Token = "Test" };
 
-                var result = await Service.DeleteRefreshTokenAsync(new RefreshToken());
+                DbContext.RefreshToken.Add(token);
+                await DbContext.SaveChangesAsync();
+
+                var result = await Service.DeleteRefreshTokenAsync(token);
 
                 Assert.IsTrue(result);
             }
@@ -853,9 +715,7 @@
             [TestMethod]
             public async Task WhenTokenNotFoundReturnsNull()
             {
-                DbContextMock.Setup(c => c.RefreshToken).Returns(new List<RefreshToken> { new RefreshToken { Id = 1 } }.ToMockDbSet().Object);
-
-                var result = await Service.GetRefreshTokenByIdAsync(2);
+                var result = await Service.GetRefreshTokenByIdAsync(300);
 
                 Assert.IsNull(result);
             }
@@ -863,14 +723,14 @@
             [TestMethod]
             public async Task WhenTokenFoundReturnsToken()
             {
-                var userId = Guid.NewGuid().ToString();
+                var refreshToken = new RefreshToken { Token = "TestToken", User = TestUsers[0] };
+                DbContext.RefreshToken.Add(refreshToken);
+                await DbContext.SaveChangesAsync();
 
-                DbContextMock.Setup(c => c.RefreshToken).Returns(new List<RefreshToken> { new RefreshToken { Id = 1, UserId = userId } }.ToMockDbSet().Object);
-
-                var result = await Service.GetRefreshTokenByIdAsync(1);
+                var result = await Service.GetRefreshTokenByIdAsync(refreshToken.Id);
 
                 Assert.IsNotNull(result);
-                Assert.AreEqual(userId, result.UserId);
+                Assert.AreEqual(TestUsers[0].Id, result.UserId);
             }
         }
     }

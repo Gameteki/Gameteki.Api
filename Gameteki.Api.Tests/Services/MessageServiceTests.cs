@@ -1,10 +1,8 @@
 ﻿namespace CrimsonDev.Gameteki.Api.Tests.Services
 {
     using System;
-    using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
     using System.Linq;
-    using System.Threading;
     using System.Threading.Tasks;
     using CrimsonDev.Gameteki.Api.Services;
     using CrimsonDev.Gameteki.Api.Tests.Helpers;
@@ -99,19 +97,6 @@
         [TestClass]
         public class AddMessageAsync : MessageServiceTests
         {
-            private Mock<IGametekiDbContext> DbContextMock { get; set; }
-
-            [TestInitialize]
-            public new void SetupTest()
-            {
-                DbContextMock = new Mock<IGametekiDbContext>();
-                LoggerMock = new Mock<ILogger<MessageService>>();
-
-                DbContextMock.Setup(c => c.LobbyMessage).Returns(new List<LobbyMessage>().ToMockDbSet().Object);
-
-                Service = new MessageService(DbContextMock.Object, LoggerMock.Object);
-            }
-
             [TestMethod]
             [ExpectedException(typeof(ArgumentNullException))]
             public async Task WhenUserIdIsNullThrowsException()
@@ -124,16 +109,6 @@
             public async Task WhenMessageIsNullThrowsException()
             {
                 await Service.AddMessageAsync(testUser, null);
-            }
-
-            [TestMethod]
-            public async Task WhenAddFailsReturnsNull()
-            {
-                DbContextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ThrowsAsync(new Exception());
-
-                var result = await Service.AddMessageAsync(testUser, "TestMessage");
-
-                Assert.IsNull(result);
             }
 
             [TestMethod]
@@ -151,34 +126,11 @@
         [TestClass]
         public class UpdateMessageAsync : MessageServiceTests
         {
-            private Mock<IGametekiDbContext> DbContextMock { get; set; }
-
-            [TestInitialize]
-            public new void SetupTest()
-            {
-                DbContextMock = new Mock<IGametekiDbContext>();
-                LoggerMock = new Mock<ILogger<MessageService>>();
-
-                DbContextMock.Setup(c => c.LobbyMessage).Returns(new List<LobbyMessage>().ToMockDbSet().Object);
-
-                Service = new MessageService(DbContextMock.Object, LoggerMock.Object);
-            }
-
             [TestMethod]
             [ExpectedException(typeof(ArgumentNullException))]
             public async Task WhenMessageIsNullThrowsException()
             {
                 await Service.UpdateMessageAsync(null);
-            }
-
-            [TestMethod]
-            public async Task WhenUpdateFailedReturnsFalse()
-            {
-                DbContextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ThrowsAsync(new Exception());
-
-                var result = await Service.UpdateMessageAsync(new LobbyMessage());
-
-                Assert.IsFalse(result);
             }
 
             [TestMethod]

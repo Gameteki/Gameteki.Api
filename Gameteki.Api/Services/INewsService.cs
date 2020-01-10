@@ -9,7 +9,7 @@
         Task<List<News>> GetLatestNewsAsync();
         Task<List<News>> GetAllNewsAsync();
         Task<bool> AddNewsAsync(News newsItem);
-        Task<News> FindNewsByIdAsync(int newsId);
+        ValueTask<News> FindNewsByIdAsync(int newsId);
         Task<bool> DeleteNewsAsync(News newsItem);
         Task<bool> UpdateNewsAsync(News newsItem);
     }

@@ -3,6 +3,7 @@
     using System;
     using System.Diagnostics.CodeAnalysis;
     using System.Text;
+    using System.Text.Json;
     using System.Threading.Tasks;
     using CrimsonDev.Gameteki.Api.Models;
     using CrimsonDev.Gameteki.Api.Scheduler;
@@ -22,8 +23,6 @@
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.IdentityModel.Tokens;
-    using Newtonsoft.Json;
-    using Newtonsoft.Json.Serialization;
     using Quartz;
     using Quartz.Impl;
     using Quartz.Spi;
@@ -103,12 +102,11 @@
                     settings => settings.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
             }
 
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1).AddJsonOptions(
+            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Latest).AddJsonOptions(
                 options =>
                 {
-                    options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
-                    options.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
-                    options.SerializerSettings.NullValueHandling = NullValueHandling.Ignore;
+                    options.JsonSerializerOptions.IgnoreNullValues = true;
+                    options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
                 });
             services.AddIdentityCore<GametekiUser>(settings => { settings.User.RequireUniqueEmail = true; })
                 .AddEntityFrameworkStores<GametekiDbContext>().AddDefaultTokenProviders();

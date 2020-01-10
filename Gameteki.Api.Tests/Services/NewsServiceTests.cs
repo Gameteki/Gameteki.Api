@@ -1,14 +1,14 @@
-﻿namespace CrimsonDev.Gameteki.Api.Tests.Services
+﻿using System.Collections.Generic;
+
+namespace CrimsonDev.Gameteki.Api.Tests.Services
 {
-    using System;
-    using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
     using System.Linq;
-    using System.Threading;
     using System.Threading.Tasks;
     using CrimsonDev.Gameteki.Api.Services;
     using CrimsonDev.Gameteki.Api.Tests.Helpers;
     using CrimsonDev.Gameteki.Data;
+    using CrimsonDev.Gameteki.Data.Models;
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
     using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -18,24 +18,29 @@
     [ExcludeFromCodeCoverage]
     public class NewsServiceTests
     {
+        private List<News> NewsItems { get; set; }
         private IGametekiDbContext DbContext { get; set; }
         private Mock<ILogger<NewsService>> MockLogger { get; set; }
 
         private INewsService Service { get; set; }
 
         [TestInitialize]
-        public void SetupTest()
+        public async Task SetupTest()
         {
             var options = new DbContextOptionsBuilder<GametekiDbContext>()
                 .UseInMemoryDatabase(databaseName: "NewsServiceTests")
                 .Options;
             DbContext = new GametekiDbContext(options);
 
+            NewsItems = new List<News>();
+
             for (var i = 0; i < 10; i++)
             {
-                DbContext.News.Add(TestUtils.GetRandomNews());
-                DbContext.SaveChangesAsync().Wait();
+                NewsItems.Add(TestUtils.GetRandomNews());
             }
+
+            await DbContext.News.AddRangeAsync(NewsItems);
+            await DbContext.SaveChangesAsync();
 
             MockLogger = new Mock<ILogger<NewsService>>();
 
@@ -58,7 +63,7 @@
                 var result = await Service.GetLatestNewsAsync();
 
                 Assert.AreEqual(3, result.Count);
-                Assert.AreEqual(orderedNews.First().Text, result.First<Data.Models.News>().Text);
+                Assert.AreEqual(orderedNews.First().Text, result.First().Text);
             }
         }
 
@@ -72,7 +77,7 @@
                 var result = await Service.GetAllNewsAsync();
 
                 Assert.AreEqual(DbContext.News.Count(), result.Count);
-                Assert.AreEqual(orderedNews.First().Text, result.First<Data.Models.News>().Text);
+                Assert.AreEqual(orderedNews.First().Text, result.First().Text);
             }
         }
 
@@ -102,33 +107,10 @@
         [TestClass]
         public class AddNewsAsync : NewsServiceTests
         {
-            private Mock<IGametekiDbContext> MockDbContext { get; set; }
-
-            [TestInitialize]
-            public new void SetupTest()
-            {
-                MockDbContext = new Mock<IGametekiDbContext>();
-                MockLogger = new Mock<ILogger<NewsService>>();
-
-                MockDbContext.Setup(c => c.News).Returns(new List<Data.Models.News>().ToMockDbSet().Object);
-
-                Service = new NewsService(MockDbContext.Object, MockLogger.Object);
-            }
-
-            [TestMethod]
-            public async Task WhenAddFailsReturnsFalse()
-            {
-                MockDbContext.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ThrowsAsync(new Exception());
-
-                var result = await Service.AddNewsAsync(new Data.Models.News());
-
-                Assert.IsFalse(result);
-            }
-
             [TestMethod]
             public async Task WhenAddSucceedsReturnsTrue()
             {
-                var result = await Service.AddNewsAsync(new Data.Models.News());
+                var result = await Service.AddNewsAsync(new News());
 
                 Assert.IsTrue(result);
             }
@@ -137,33 +119,10 @@
         [TestClass]
         public class DeleteNewsAsync : NewsServiceTests
         {
-            private Mock<IGametekiDbContext> MockDbContext { get; set; }
-
-            [TestInitialize]
-            public new void SetupTest()
-            {
-                MockDbContext = new Mock<IGametekiDbContext>();
-                MockLogger = new Mock<ILogger<NewsService>>();
-
-                MockDbContext.Setup(c => c.News).Returns(new List<Data.Models.News>().ToMockDbSet().Object);
-
-                Service = new NewsService(MockDbContext.Object, MockLogger.Object);
-            }
-
-            [TestMethod]
-            public async Task WhenDeleteFailsReturnsFalse()
-            {
-                MockDbContext.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ThrowsAsync(new Exception());
-
-                var result = await Service.DeleteNewsAsync(new Data.Models.News());
-
-                Assert.IsFalse(result);
-            }
-
             [TestMethod]
             public async Task WhenDeleteSucceedsReturnsTrue()
             {
-                var result = await Service.DeleteNewsAsync(new Data.Models.News());
+                var result = await Service.DeleteNewsAsync(NewsItems[0]);
 
                 Assert.IsTrue(result);
             }
@@ -172,33 +131,14 @@
         [TestClass]
         public class UpdateNewsAsync : NewsServiceTests
         {
-            private Mock<IGametekiDbContext> MockDbContext { get; set; }
-
-            [TestInitialize]
-            public new void SetupTest()
-            {
-                MockDbContext = new Mock<IGametekiDbContext>();
-                MockLogger = new Mock<ILogger<NewsService>>();
-
-                MockDbContext.Setup(c => c.News).Returns(new List<Data.Models.News>().ToMockDbSet().Object);
-
-                Service = new NewsService(MockDbContext.Object, MockLogger.Object);
-            }
-
-            [TestMethod]
-            public async Task WhenUpdateFailsReturnsFalse()
-            {
-                MockDbContext.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ThrowsAsync(new Exception());
-
-                var result = await Service.UpdateNewsAsync(new Data.Models.News());
-
-                Assert.IsFalse(result);
-            }
-
             [TestMethod]
             public async Task WhenUpdateSucceedsReturnsTrue()
             {
-                var result = await Service.UpdateNewsAsync(new Data.Models.News());
+                var news = NewsItems[3];
+
+                news.Text = "updated";
+
+                var result = await Service.UpdateNewsAsync(news);
 
                 Assert.IsTrue(result);
             }

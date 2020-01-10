@@ -1,0 +1,3 @@
+[submodule "Gameteki.Data"]
+	path = Gameteki.Data
+	url = git@github.com:Gameteki/Gameteki.Data.git
