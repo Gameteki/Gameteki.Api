@@ -5,7 +5,7 @@
 
     public static class ApiResponseExtensions
     {
-        public static JsonResult FailureResponse(this Controller controller, string message)
+        public static JsonResult FailureResponse(this ControllerBase controller, string message)
         {
             return new JsonResult(new ApiResponse
             {
@@ -14,7 +14,7 @@
             });
         }
 
-        public static JsonResult SuccessResponse(this Controller controller, string message = null)
+        public static JsonResult SuccessResponse(this ControllerBase controller, string message = null)
         {
             return new JsonResult(new ApiResponse { Success = true, Message = message });
         }

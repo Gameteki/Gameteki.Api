@@ -16,7 +16,7 @@
     using Microsoft.Extensions.Options;
 
     [ApiController]
-    public class AccountController : Controller
+    public class AccountController : ControllerBase
     {
         private readonly IUserService userService;
         private readonly IHttpClient httpClient;
@@ -117,7 +117,7 @@
             };
 
             logger.LogInformation($"AUTH: Successful login for ${request.Username}");
-            return Json(response);
+            return Ok(response);
         }
 
         [Route("api/account/logout")]
@@ -145,7 +145,7 @@
             if (user != null)
             {
                 logger.LogDebug($"Check auth succeeded for {User.Identity.Name}");
-                return Json(new CheckAuthResponse { Success = true, User = user.ToApiUser() });
+                return Ok(new CheckAuthResponse { Success = true, User = user.ToApiUser() });
             }
 
             logger.LogWarning($"AUTH: Failed check auth for '{User.Identity.Name}'");
@@ -171,7 +171,7 @@
             logger.LogDebug(
                 $"Successful token refresh for '{result.User.UserName}' using token '{request.Token} " +
                 $"and refresh token '{request.RefreshToken}'");
-            return Json(new LoginResponse
+            return Ok(new LoginResponse
             {
                 Success = true,
                 RefreshToken = result.RefreshToken,
@@ -221,7 +221,7 @@
 
             if (request.CurrentPassword == null || request.NewPassword == null)
             {
-                return Json(new UpdateProfileResponse
+                return Ok(new UpdateProfileResponse
                 {
                     Success = true,
                     User = user.ToApiUser(),
@@ -241,7 +241,7 @@
                 return this.FailureResponse("An error occurred saving your profile.  Please try again later.");
             }
 
-            return Json(new UpdateProfileResponse
+            return Ok(new UpdateProfileResponse
             {
                 Success = true,
                 User = user.ToApiUser(),
@@ -267,7 +267,7 @@
             }
 
             logger.LogDebug($"Returning user sessions for {username}");
-            return Json(new GetUserSessionsResponse
+            return Ok(new GetUserSessionsResponse
             {
                 Success = true,
                 Tokens = user.RefreshTokens.Select(rt => rt.ToApiToken()).ToList()
@@ -302,7 +302,7 @@
             }
 
             logger.LogDebug($"Deleted session '{sessionId.Value}' for user '{username}'");
-            return Json(new DeleteSessionResponse
+            return Ok(new DeleteSessionResponse
             {
                 Success = true,
                 TokenId = refreshToken.Id,
@@ -329,7 +329,7 @@
             }
 
             logger.LogDebug($"Returned block list for user '{username}'");
-            return Json(new GetBlockListResponse { Success = true, BlockList = user.BlockList.Select(bl => bl.BlockedUser).ToList() });
+            return Ok(new GetBlockListResponse { Success = true, BlockList = user.BlockList.Select(bl => bl.BlockedUser).ToList() });
         }
 
         [Route("api/account/{username}/blocklist")]
@@ -363,7 +363,7 @@
             }
 
             logger.LogDebug($"Added blocklist entry '{request.Username}' to user '{username}'");
-            return Json(new BlockListEntryResponse
+            return Ok(new BlockListEntryResponse
             {
                 Success = true,
                 Username = request.Username
@@ -405,7 +405,7 @@
 
             logger.LogDebug($"Removed blocklist entry '{blockedUsername}' for user '{username}'");
 
-            return Json(new BlockListEntryResponse
+            return Ok(new BlockListEntryResponse
             {
                 Success = true,
                 Username = blockedUsername
