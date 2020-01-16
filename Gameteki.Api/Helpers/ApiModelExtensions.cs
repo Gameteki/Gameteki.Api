@@ -53,7 +53,6 @@
             apiUser.Id = user.Id;
             apiUser.Username = user.UserName;
             apiUser.Email = user.Email;
-            apiUser.EnableGravatar = user.Settings.EnableGravatar;
             apiUser.Settings = new ApiSettings
             {
                 Background = user.Settings.Background,

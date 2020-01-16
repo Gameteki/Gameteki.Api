@@ -23,14 +23,20 @@
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.IdentityModel.Tokens;
-    using Quartz;
-    using Quartz.Impl;
     using Quartz.Spi;
     using StackExchange.Redis;
 
     [ExcludeFromCodeCoverage]
     public static class ApiExtensions
     {
+        private static readonly GametekiApiOptions DefaultConfig = new GametekiApiOptions
+        {
+            AccountVerification = true,
+            ApplicationName = "Gameteki Hosted Application",
+            DatabaseProvider = "mssql",
+            RedisUrl = "localhost:6379"
+        };
+
         public static void AddGameteki(this IServiceCollection services, IConfiguration configuration)
         {
             ConfigureMvc(services, configuration);
@@ -39,21 +45,8 @@
 
         public static IApplicationBuilder UseGameteki(this IApplicationBuilder app)
         {
-            ISchedulerFactory schedulerFactory = new StdSchedulerFactory();
-            var scheduler = schedulerFactory.GetScheduler().GetAwaiter().GetResult();
-
-            scheduler.JobFactory = app.ApplicationServices.GetService<IJobFactory>();
-
-            var job = JobBuilder.Create<NodeMonitor>().WithIdentity("NodeMonitor").Build();
-            var trigger = TriggerBuilder
-                .Create()
-                .WithIdentity("NodeMonitorTrigger")
-                .WithSimpleSchedule(x => x.WithIntervalInSeconds(30).RepeatForever())
-                .Build();
-
-            scheduler.ScheduleJob(job, trigger);
-
-            scheduler.Start().GetAwaiter().GetResult();
+            app.UseRouting();
+            app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
 
             return app;
         }
@@ -61,7 +54,7 @@
         private static void ConfigureServices(IServiceCollection services, IConfiguration configuration)
         {
             var generalSection = configuration.GetSection("General");
-            var generalConfig = generalSection.Get<GametekiApiOptions>();
+            var generalConfig = generalSection.Get<GametekiApiOptions>() ?? DefaultConfig;
 
             services.AddScoped<DbContext, GametekiDbContext>();
 
@@ -84,22 +77,22 @@
             services.Configure<AuthMessageSenderOptions>(configuration);
             services.Configure<AuthTokenOptions>(configuration.GetSection("Tokens"));
             services.Configure<GametekiApiOptions>(generalSection);
+
+            services.AddControllers();
         }
 
         private static void ConfigureMvc(IServiceCollection services, IConfiguration configuration)
         {
             var tokens = configuration.GetSection("Tokens").Get<AuthTokenOptions>();
-            var generalOptions = configuration.GetSection("General").Get<GametekiApiOptions>();
+            var generalOptions = configuration.GetSection("General").Get<GametekiApiOptions>() ?? DefaultConfig;
 
             if (generalOptions.DatabaseProvider.ToLower() == "mssql")
             {
-                services.AddDbContext<GametekiDbContext>(
-                    settings => settings.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+                services.AddDbContext<GametekiDbContext>(settings => settings.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
             }
             else
             {
-                services.AddDbContext<GametekiDbContext>(
-                    settings => settings.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
+                services.AddDbContext<GametekiDbContext>(settings => settings.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
             }
 
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Latest).AddJsonOptions(
@@ -109,7 +102,8 @@
                     options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
                 });
             services.AddIdentityCore<GametekiUser>(settings => { settings.User.RequireUniqueEmail = true; })
-                .AddEntityFrameworkStores<GametekiDbContext>().AddDefaultTokenProviders();
+                .AddEntityFrameworkStores<GametekiDbContext>()
+                .AddDefaultTokenProviders();
 
             services.AddAuthentication(
                 settings =>

@@ -66,7 +66,7 @@
                 }
             }
 
-            var stringToHash = result.User.Settings.EnableGravatar ? result.User.EmailHash : GetRandomString(32);
+            var stringToHash = GetRandomString(32);
             await httpClient.DownloadFileAsync($"https://www.gravatar.com/avatar/{stringToHash}?d=identicon&s=24", Path.Combine(apiOptions.ImagePath, "avatar", $"{result.User.UserName}.png"));
 
             logger.LogDebug($"Registered new account: '{result.User.UserName}'");
@@ -201,12 +201,11 @@
 
             user.Email = request.Email;
             user.EmailHash = request.Email.Md5Hash();
-            user.Settings.EnableGravatar = request.EnableGravatar;
             user.Settings.Background = request.Settings.Background;
             user.Settings.CardSize = request.Settings.CardSize;
             user.CustomData = request.CustomData;
 
-            var stringToHash = user.Settings.EnableGravatar ? user.EmailHash : GetRandomString(32);
+            var stringToHash = GetRandomString(32);
             await httpClient.DownloadFileAsync($"https://www.gravatar.com/avatar/{stringToHash}?d=identicon&s=24", Path.Combine(apiOptions.ImagePath, "avatar", $"{user.UserName}.png"));
 
             var result = await userService.UpdateUserAsync(user, request.CurrentPassword, request.NewPassword);
@@ -426,7 +425,7 @@
                 return NotFound();
             }
 
-            var stringToHash = (user.Settings.EnableGravatar ? user.EmailHash : GetRandomString(32)).ToLower();
+            var stringToHash = GetRandomString(32).ToLower();
             var result = await httpClient.DownloadFileAsync($"https://www.gravatar.com/avatar/{stringToHash}?d=identicon&s=24", Path.Combine(apiOptions.ImagePath, "avatar", $"{user.UserName}.png"));
 
             if (result)
@@ -438,14 +437,13 @@
             return this.FailureResponse("An error occurred updating your avatar.");
         }
 
-        private string GetRandomString(int charCount)
+        private static string GetRandomString(int charCount)
         {
             var randomNumber = new byte[charCount];
-            using (var rng = RandomNumberGenerator.Create())
-            {
-                rng.GetBytes(randomNumber);
-                return Convert.ToBase64String(randomNumber);
-            }
+            using var rng = RandomNumberGenerator.Create();
+
+            rng.GetBytes(randomNumber);
+            return Convert.ToBase64String(randomNumber);
         }
     }
 }

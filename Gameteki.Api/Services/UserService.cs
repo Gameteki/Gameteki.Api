@@ -71,10 +71,7 @@
                 UserName = request.Username,
                 LockoutEnabled = true,
                 RegisteredDate = DateTime.UtcNow,
-                Settings = new UserSettings
-                {
-                    EnableGravatar = request.EnableGravatar
-                },
+                Settings = new UserSettings(),
                 EmailHash = request.Email.Md5Hash(),
                 RegisterIp = ipAddress,
                 EmailConfirmed = !apiOptions.AccountVerification
@@ -384,10 +381,10 @@
                 throw new ArgumentNullException(nameof(username));
             }
 
-            return RemoveBlockListEntryInternalAsync(user, username);
+            return RemoveBlockListEntryInternalAsync(username);
         }
 
-        public async Task<bool> RemoveBlockListEntryInternalAsync(GametekiUser user, string username)
+        public async Task<bool> RemoveBlockListEntryInternalAsync(string username)
         {
             try
             {
@@ -551,10 +548,8 @@
                 user.UserRoles.Add(new GametekiUserRole { Role = role, User = user });
             }
 
-            foreach (var roleToRemove in toRemove)
+            foreach (var userRole in toRemove.Select(roleToRemove => user.UserRoles.Single(ur => ur.Role.Name == roleToRemove)))
             {
-                var userRole = user.UserRoles.Single(ur => ur.Role.Name == roleToRemove);
-
                 user.UserRoles.Remove(userRole);
             }
 
@@ -586,12 +581,12 @@
 
         private Task<bool> IsUsernameInUseAsync(string username)
         {
-            return context.Users.AnyAsync(u => u.UserName.Equals(username, StringComparison.InvariantCultureIgnoreCase));
+            return context.Users.AnyAsync(u => u.UserName == username);
         }
 
         private Task<bool> IsEmailInUseAsync(string email)
         {
-            return context.Users.AnyAsync(u => u.Email.Equals(email, StringComparison.InvariantCultureIgnoreCase));
+            return context.Users.AnyAsync(u => u.Email == email);
         }
 
         private string GenerateTokenForUser(GametekiUser user)
@@ -603,11 +598,11 @@
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(tokenOptions.Key));
             var jwt = new JwtSecurityToken(
                 tokenOptions.Issuer,
-                audience: tokenOptions.Issuer,
-                claims: claims,
-                notBefore: DateTime.UtcNow,
-                expires: DateTime.UtcNow.AddMinutes(value: 5),
-                signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256));
+                tokenOptions.Issuer,
+                claims,
+                DateTime.UtcNow,
+                DateTime.UtcNow.AddMinutes(5),
+                new SigningCredentials(key, SecurityAlgorithms.HmacSha256));
 
             jwt.Payload["UserData"] = user.ToApiUser();
             jwt.Payload["BlockList"] = user.BlockList;
@@ -636,11 +631,10 @@
         private string GenerateRefreshToken()
         {
             var randomNumber = new byte[32];
-            using (var rng = RandomNumberGenerator.Create())
-            {
-                rng.GetBytes(randomNumber);
-                return Convert.ToBase64String(randomNumber);
-            }
+            using var rng = RandomNumberGenerator.Create();
+
+            rng.GetBytes(randomNumber);
+            return Convert.ToBase64String(randomNumber);
         }
 
         private ClaimsPrincipal GetPrincipalFromExpiredToken(string token)
