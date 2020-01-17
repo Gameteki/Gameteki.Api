@@ -11,11 +11,13 @@
     using CrimsonDev.Gameteki.Data.Models.Api;
     using CrimsonDev.Gameteki.Data.Models.Config;
     using Microsoft.AspNetCore.Authorization;
+    using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Options;
 
     [ApiController]
+    [Route("api/[controller]")]
     public class AccountController : ControllerBase
     {
         private readonly IUserService userService;
@@ -32,8 +34,9 @@
             apiOptions = options.Value;
         }
 
-        [HttpPost]
-        [Route("api/account/register")]
+        [HttpPost("register")]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> RegisterAccount(RegisterAccountRequest request)
         {
             var result = await userService.RegisterUserAsync(request, HttpContext.Connection.RemoteIpAddress.ToString());
