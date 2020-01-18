@@ -18,6 +18,7 @@
     using Microsoft.AspNetCore.Identity;
     using Microsoft.AspNetCore.Identity.UI.Services;
     using Microsoft.EntityFrameworkCore;
+    using Microsoft.Extensions.Localization;
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Options;
     using Microsoft.IdentityModel.Tokens;
@@ -31,16 +32,18 @@
         private readonly IEmailSender emailSender;
         private readonly IViewRenderService viewRenderService;
         private readonly ILogger<UserService> logger;
+        private readonly IStringLocalizer<UserService> t;
         private readonly AuthTokenOptions tokenOptions;
 
-        public UserService(
+        protected UserService(
             IGametekiDbContext context,
             UserManager<GametekiUser> userManager,
             IOptions<AuthTokenOptions> optionsAccessor,
             IOptions<GametekiApiOptions> lobbyOptions,
             IEmailSender emailSender,
             IViewRenderService viewRenderService,
-            ILogger<UserService> logger)
+            ILogger<UserService> logger,
+            IStringLocalizer<UserService> localizer)
         {
             this.context = context;
             this.userManager = userManager;
@@ -48,6 +51,7 @@
             this.emailSender = emailSender;
             this.viewRenderService = viewRenderService;
             this.logger = logger;
+            t = localizer;
             tokenOptions = optionsAccessor.Value;
         }
 
@@ -56,13 +60,13 @@
             if (await IsEmailInUseAsync(request.Email))
             {
                 logger.LogDebug($"Request to register account with email '{request.Email}' already in use");
-                return RegisterAccountResult.Failed("An account with that email already exists, please use another.", "email");
+                return RegisterAccountResult.Failed(t["An account with that email already exists, please use another"], "email");
             }
 
             if (await IsUsernameInUseAsync(request.Username))
             {
                 logger.LogDebug($"Request to register account with name '{request.Username}' already in use");
-                return RegisterAccountResult.Failed("An account with that name already exists, please choose another.", "username");
+                return RegisterAccountResult.Failed(t["An account with that name already exists, please choose another"], "username");
             }
 
             var newUser = new GametekiUser
@@ -82,14 +86,25 @@
                 var result = await userManager.CreateAsync(newUser, request.Password);
                 if (!result.Succeeded)
                 {
+                    var registerResult = new RegisterAccountResult
+                    {
+                        Success = false
+                    };
+
                     logger.LogError($"Failed to register user '{newUser.UserName}': {result.Errors.Aggregate(string.Empty, (prev, error) => prev + $" ({error.Code}) - {error.Description}")}");
-                    return RegisterAccountResult.Failed(result.Errors.Aggregate(string.Empty, (prev, error) => prev + $" {error.Description}"));
+
+                    foreach (var error in result.Errors)
+                    {
+                        registerResult.Errors.Add(error.Code, error.Description);
+                    }
+
+                    return registerResult;
                 }
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, $"Failed to register user '{newUser.UserName}'");
-                return RegisterAccountResult.Failed("An error occurred registering the user");
+                return RegisterAccountResult.Failed(t["An error occurred registering your account.  Please try again later"]);
             }
 
             return RegisterAccountResult.Succeeded(newUser);

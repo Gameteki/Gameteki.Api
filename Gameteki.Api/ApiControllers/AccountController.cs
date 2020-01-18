@@ -13,6 +13,7 @@
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Mvc;
+    using Microsoft.Extensions.Localization;
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Options;
 
@@ -23,13 +24,20 @@
         private readonly IUserService userService;
         private readonly IHttpClient httpClient;
         private readonly ILogger<AccountController> logger;
+        private readonly IStringLocalizer<AccountController> t;
         private readonly GametekiApiOptions apiOptions;
 
-        public AccountController(IUserService userService, IHttpClient httpClient, IOptions<GametekiApiOptions> options, ILogger<AccountController> logger)
+        public AccountController(
+            IUserService userService,
+            IHttpClient httpClient,
+            IOptions<GametekiApiOptions> options,
+            ILogger<AccountController> logger,
+            IStringLocalizer<AccountController> localizer)
         {
             this.userService = userService;
             this.httpClient = httpClient;
             this.logger = logger;
+            t = localizer;
 
             apiOptions = options.Value;
         }
@@ -74,7 +82,9 @@
 
             logger.LogDebug($"Registered new account: '{result.User.UserName}'");
 
-            return this.SuccessResponse(apiOptions.AccountVerification ? "Your account was successfully registered.  Please verify your account using the link in the email sent to the address you have provided." : "Your account was successfully registered.");
+            return this.SuccessResponse(apiOptions.AccountVerification ?
+                t["Your account was successfully registered, please verify your account using the link in the email sent to the address you have provided"] :
+                t["Your account was successfully registered"]);
         }
 
         [HttpPost]
@@ -86,7 +96,7 @@
             if (!result)
             {
                 logger.LogError($"Error verifying {request.Id}");
-                return this.FailureResponse("An error occurred validating your account.  Please check the URL is entered correctly and try again.");
+                return this.FailureResponse(t["An error occurred validating your account.  Please check the URL is entered correctly and try again."]);
             }
 
             logger.LogDebug($"Verified account id '{request.Id}'");
@@ -108,7 +118,7 @@
             if (!result.User.EmailConfirmed)
             {
                 logger.LogWarning($"AUTH: Failed login attempt for ${request.Username} (Email not confirmed)");
-                return this.FailureResponse("You must verify your account before trying to log in.  Please see the email we sent you for more details.");
+                return this.FailureResponse(t["You must verify your account before trying to log in.  Please see the email we sent you for more details."]);
             }
 
             var response = new LoginResponse
@@ -132,7 +142,7 @@
             if (!result)
             {
                 logger.LogWarning($"AUTH: Failed logout for user '{User.Identity.Name}', tokens '{request.Token}' '{request.RefreshToken}'");
-                return this.FailureResponse("An error occurred logging you out.  Please try again later.");
+                return this.FailureResponse(t["An error occurred logging you out.  Please try again later."]);
             }
 
             logger.LogInformation($"AUTH: Logout succeeded for user '{User.Identity.Name}'");
@@ -152,7 +162,7 @@
             }
 
             logger.LogWarning($"AUTH: Failed check auth for '{User.Identity.Name}'");
-            return this.FailureResponse("An error occurred.  Please try again later.");
+            return this.FailureResponse(t["An error occurred.  Please try again later."]);
         }
 
         [Route("api/account/token")]
@@ -168,7 +178,7 @@
                 logger.LogWarning(
                     $"AUTH: Failed token refresh for '{User.Identity.Name}' token '{request.Token}' " +
                     $"and refresh token '{request.RefreshToken}'");
-                return this.FailureResponse("An error occurred refreshing your token.  Please try again later.");
+                return this.FailureResponse(t["An error occurred refreshing your token.  Please try again later."]);
             }
 
             logger.LogDebug(
@@ -235,13 +245,13 @@
             var clearResult = await userService.ClearRefreshTokensAsync(user);
             if (!clearResult)
             {
-                return this.FailureResponse("An error occurred saving your profile.  Please try again later.");
+                return this.FailureResponse(t["An error occurred saving your profile.  Please try again later."]);
             }
 
             var newToken = await userService.CreateRefreshTokenAsync(user, HttpContext.Connection.RemoteIpAddress.ToString());
             if (newToken == null)
             {
-                return this.FailureResponse("An error occurred saving your profile.  Please try again later.");
+                return this.FailureResponse(t["An error occurred saving your profile.  Please try again later."]);
             }
 
             return Ok(new UpdateProfileResponse
@@ -280,7 +290,7 @@
         [Route("api/account/{username}/sessions/{sessionId}")]
         [Authorize]
         [HttpDelete]
-        public async Task<IActionResult> DeleteUserSession(string username, int? sessionId)
+        public async Task<IActionResult> DeleteUserSession(string username, int sessionId)
         {
             if (username != User.Identity.Name)
             {
@@ -289,10 +299,10 @@
                 return NotFound();
             }
 
-            var refreshToken = await userService.GetRefreshTokenByIdAsync(sessionId.Value);
+            var refreshToken = await userService.GetRefreshTokenByIdAsync(sessionId);
             if (refreshToken == null)
             {
-                logger.LogWarning($"Attempt to delete unknown user session: '{username}' ({sessionId.Value})");
+                logger.LogWarning($"Attempt to delete unknown user session: '{username}' ({sessionId})");
 
                 return NotFound();
             }
@@ -300,16 +310,16 @@
             var result = await userService.DeleteRefreshTokenAsync(refreshToken);
             if (!result)
             {
-                logger.LogError($"Failed to delete session '{sessionId.Value}' for user {username}");
-                return this.FailureResponse("An error occurred deleting the session.  Please try again later.");
+                logger.LogError($"Failed to delete session '{sessionId}' for user {username}");
+                return this.FailureResponse(t["An error occurred deleting the session.  Please try again later."]);
             }
 
-            logger.LogDebug($"Deleted session '{sessionId.Value}' for user '{username}'");
+            logger.LogDebug($"Deleted session '{sessionId}' for user '{username}'");
             return Ok(new DeleteSessionResponse
             {
                 Success = true,
                 TokenId = refreshToken.Id,
-                Message = "Session deleted successfully"
+                Message = t["Session deleted successfully"]
             });
         }
 
@@ -355,14 +365,14 @@
 
             if (user.BlockList.Any(bl => bl.BlockedUser.Equals(request.Username, StringComparison.InvariantCultureIgnoreCase)))
             {
-                return this.FailureResponse("The block list already contains this user.");
+                return this.FailureResponse(t["The block list already contains this user."]);
             }
 
             var result = await userService.AddBlockListEntryAsync(user, request.Username);
             if (!result)
             {
                 logger.LogError($"Error adding blocklist entry for user '{username}' ({request.Username}'");
-                return this.FailureResponse("An error occurred adding the block list entry.");
+                return this.FailureResponse(t["An error occurred adding the block list entry."]);
             }
 
             logger.LogDebug($"Added blocklist entry '{request.Username}' to user '{username}'");
@@ -403,7 +413,7 @@
             {
                 logger.LogWarning($"Error removing blocklist entry for user '{username}' ({blockedUsername})");
 
-                return this.FailureResponse("An error occurred removing the block list entry.");
+                return this.FailureResponse(t["An error occurred removing the block list entry."]);
             }
 
             logger.LogDebug($"Removed blocklist entry '{blockedUsername}' for user '{username}'");
@@ -437,7 +447,7 @@
             }
 
             logger.LogError($"Error downloading avatar for {username}");
-            return this.FailureResponse("An error occurred updating your avatar.");
+            return this.FailureResponse(t["An error occurred updating your avatar."]);
         }
 
         private static string GetRandomString(int charCount)

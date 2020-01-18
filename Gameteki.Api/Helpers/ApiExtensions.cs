@@ -11,6 +11,9 @@
     using CrimsonDev.Gameteki.Data;
     using CrimsonDev.Gameteki.Data.Models;
     using CrimsonDev.Gameteki.Data.Models.Config;
+    using I18Next.Net.AspNetCore;
+    using I18Next.Net.Backends;
+    using I18Next.Net.Extensions;
     using Microsoft.AspNetCore.Authentication.JwtBearer;
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Http;
@@ -45,6 +48,9 @@
 
         public static IApplicationBuilder UseGameteki(this IApplicationBuilder app)
         {
+            app.UseRequestLocalization(options => options.AddSupportedCultures(
+                "de", "en", "es", "fr", "it", "pl", "pt", "th", "zh-CN", "zh-TW"));
+
             app.UseRouting();
             app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
 
@@ -79,6 +85,10 @@
             services.Configure<GametekiApiOptions>(generalSection);
 
             services.AddControllers();
+
+            services.AddI18NextLocalization(i18n => i18n.IntegrateToAspNetCore()
+                .AddBackend(new JsonFileBackend("wwwroot/locales"))
+                .UseDefaultLanguage("en"));
         }
 
         private static void ConfigureMvc(IServiceCollection services, IConfiguration configuration)
