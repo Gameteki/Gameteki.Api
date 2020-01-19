@@ -173,40 +173,6 @@
             return LoginUserInternalAsync(username, password, ipAddress);
         }
 
-        public async Task<LoginResult> LoginUserInternalAsync(string username, string password, string ipAddress)
-        {
-            var user = await GetUserFromUsernameAsync(username);
-            if (user == null)
-            {
-                return null;
-            }
-
-            if (user.Disabled)
-            {
-                return null;
-            }
-
-            var isPasswordCorrect = await userManager.CheckPasswordAsync(user, password);
-            if (!isPasswordCorrect)
-            {
-                return null;
-            }
-
-            var refreshToken = await CreateRefreshTokenAsync(user, ipAddress);
-            var result = new LoginResult
-            {
-                Token = GenerateTokenForUser(user),
-                User = user,
-                RefreshToken = refreshToken.Token
-            };
-
-            user.LastLoginDate = DateTime.UtcNow;
-
-            await context.SaveChangesAsync();
-
-            return result;
-        }
-
         public Task<RefreshToken> CreateRefreshTokenAsync(GametekiUser user, string ipAddress)
         {
             if (user == null)
@@ -256,17 +222,6 @@
             }
 
             return GetUserFromUsernameInternalAsync(username);
-        }
-
-        public virtual async Task<GametekiUser> GetUserFromUsernameInternalAsync(string username)
-        {
-            return await context.Users
-                .Include(u => u.RefreshTokens)
-                .Include(u => u.BlockList)
-                .Include(u => u.UserRoles)
-                .ThenInclude(ur => ur.User)
-                .Include("UserRoles.Role")
-                .SingleOrDefaultAsync(u => u.UserName.Equals(username, StringComparison.OrdinalIgnoreCase));
         }
 
         public Task<LoginResult> RefreshTokenAsync(string token, string refreshToken, string ipAddress)
@@ -581,6 +536,17 @@
             return true;
         }
 
+        protected virtual async Task<GametekiUser> GetUserFromUsernameInternalAsync(string username)
+        {
+            return await context.Users
+                .Include(u => u.RefreshTokens)
+                .Include(u => u.BlockList)
+                .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.User)
+                .Include("UserRoles.Role")
+                .SingleOrDefaultAsync(u => u.UserName == username);
+        }
+
         private static void ProcessPermission(bool newPermission, bool existingPermission, string roleName, ICollection<string> toRemove, ICollection<string> toAdd)
         {
             if (existingPermission && !newPermission)
@@ -592,6 +558,40 @@
             {
                 toAdd.Add(roleName);
             }
+        }
+
+        private async Task<LoginResult> LoginUserInternalAsync(string username, string password, string ipAddress)
+        {
+            var user = await GetUserFromUsernameAsync(username);
+            if (user == null)
+            {
+                return null;
+            }
+
+            if (user.Disabled)
+            {
+                return null;
+            }
+
+            var isPasswordCorrect = await userManager.CheckPasswordAsync(user, password);
+            if (!isPasswordCorrect)
+            {
+                return null;
+            }
+
+            var refreshToken = await CreateRefreshTokenAsync(user, ipAddress);
+            var result = new LoginResult
+            {
+                Token = GenerateTokenForUser(user),
+                User = user,
+                RefreshToken = refreshToken.Token
+            };
+
+            user.LastLoginDate = DateTime.UtcNow;
+
+            await context.SaveChangesAsync();
+
+            return result;
         }
 
         private Task<bool> IsUsernameInUseAsync(string username)

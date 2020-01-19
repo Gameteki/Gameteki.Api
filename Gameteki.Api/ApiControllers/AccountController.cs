@@ -103,8 +103,7 @@
             return this.SuccessResponse();
         }
 
-        [HttpPost]
-        [Route("api/account/login")]
+        [HttpPost("login")]
         public async Task<IActionResult> Login(LoginRequest request)
         {
             var result = await userService.LoginUserAsync(request.Username, request.Password, HttpContext.Connection.RemoteIpAddress.ToString());
