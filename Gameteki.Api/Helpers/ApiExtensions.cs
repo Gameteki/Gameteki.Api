@@ -52,6 +52,7 @@
                 "de", "en", "es", "fr", "it", "pl", "pt", "th", "zh-CN", "zh-TW"));
 
             app.UseRouting();
+            app.UseAuthorization();
             app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
 
             return app;

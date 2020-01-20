@@ -148,7 +148,7 @@
             return this.SuccessResponse();
         }
 
-        [Route("api/account/checkauth")]
+        [HttpPost("checkauth")]
         [Authorize]
         public async Task<IActionResult> CheckAuth()
         {
@@ -164,8 +164,7 @@
             return this.FailureResponse(t["An error occurred.  Please try again later."]);
         }
 
-        [Route("api/account/token")]
-        [HttpPost]
+        [HttpPost("token")]
         public async Task<IActionResult> GetNewToken(RefreshTokenRequest request)
         {
             var result = await userService.RefreshTokenAsync(

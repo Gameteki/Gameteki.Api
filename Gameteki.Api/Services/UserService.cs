@@ -239,40 +239,6 @@
             return RefreshTokenInternalAsync(token, refreshToken, ipAddress);
         }
 
-        public async Task<LoginResult> RefreshTokenInternalAsync(string token, string refreshToken, string ipAddress)
-        {
-            var claimsPrincipal = GetPrincipalFromExpiredToken(token);
-            if (claimsPrincipal == null)
-            {
-                return null;
-            }
-
-            var dbToken = await context.RefreshToken
-                .Include(rt => rt.User)
-                .ThenInclude(u => u.UserRoles)
-                .ThenInclude(ur => ur.User)
-                .Include("User.UserRoles.Role")
-                .SingleOrDefaultAsync(rt => rt.User.UserName.Equals(claimsPrincipal.Identity.Name, StringComparison.InvariantCultureIgnoreCase) && rt.Token == refreshToken);
-
-            if (dbToken == null)
-            {
-                return null;
-            }
-
-            var result = await UpdateRefreshTokenUsage(dbToken, ipAddress);
-            if (!result)
-            {
-                return null;
-            }
-
-            return new LoginResult
-            {
-                RefreshToken = dbToken.Token,
-                User = dbToken.User,
-                Token = GenerateTokenForUser(dbToken.User)
-            };
-        }
-
         public Task<RefreshToken> GetRefreshTokenByIdAsync(int tokenId)
         {
             return context.RefreshToken.SingleOrDefaultAsync(t => t.Id == tokenId);
@@ -558,6 +524,40 @@
             {
                 toAdd.Add(roleName);
             }
+        }
+
+        private async Task<LoginResult> RefreshTokenInternalAsync(string token, string refreshToken, string ipAddress)
+        {
+            var claimsPrincipal = GetPrincipalFromExpiredToken(token);
+            if (claimsPrincipal == null)
+            {
+                return null;
+            }
+
+            var dbToken = await context.RefreshToken
+                .Include(rt => rt.User)
+                .ThenInclude(u => u.UserRoles)
+                .ThenInclude(ur => ur.User)
+                .Include("User.UserRoles.Role")
+                .SingleOrDefaultAsync(rt => rt.User.UserName == claimsPrincipal.Identity.Name && rt.Token == refreshToken);
+
+            if (dbToken == null)
+            {
+                return null;
+            }
+
+            var result = await UpdateRefreshTokenUsage(dbToken, ipAddress);
+            if (!result)
+            {
+                return null;
+            }
+
+            return new LoginResult
+            {
+                RefreshToken = dbToken.Token,
+                User = dbToken.User,
+                Token = GenerateTokenForUser(dbToken.User)
+            };
         }
 
         private async Task<LoginResult> LoginUserInternalAsync(string username, string password, string ipAddress)
