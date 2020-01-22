@@ -128,7 +128,7 @@
                 RefreshToken = result.RefreshToken
             };
 
-            logger.LogInformation($"AUTH: Successful login for ${request.Username}");
+            logger.LogInformation($"AUTH: Successful login for {request.Username}");
             return Ok(response);
         }
 
@@ -191,9 +191,8 @@
             });
         }
 
-        [Route("api/account/{username}")]
+        [HttpPut("{username}")]
         [Authorize]
-        [HttpPut]
         public async Task<IActionResult> UpdateProfile(string username, [FromBody] UpdateProfileRequest request)
         {
             if (username != User.Identity.Name)

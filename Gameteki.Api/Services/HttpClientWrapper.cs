@@ -35,10 +35,9 @@
 
             try
             {
-                using (var fileStream = File.Create(path))
-                {
-                    await stream.CopyToAsync(fileStream);
-                }
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
+                await using var fileStream = File.Create(path);
+                await stream.CopyToAsync(fileStream);
             }
             catch (Exception exception)
             {

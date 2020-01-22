@@ -52,6 +52,7 @@
                 "de", "en", "es", "fr", "it", "pl", "pt", "th", "zh-CN", "zh-TW"));
 
             app.UseRouting();
+            app.UseAuthentication();
             app.UseAuthorization();
             app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
 
@@ -106,12 +107,6 @@
                 services.AddDbContext<GametekiDbContext>(settings => settings.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
             }
 
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Latest).AddJsonOptions(
-                options =>
-                {
-                    options.JsonSerializerOptions.IgnoreNullValues = true;
-                    options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-                });
             services.AddIdentityCore<GametekiUser>(settings => { settings.User.RequireUniqueEmail = true; })
                 .AddEntityFrameworkStores<GametekiDbContext>()
                 .AddDefaultTokenProviders();
@@ -146,6 +141,13 @@
                             return Task.CompletedTask;
                         }
                     };
+                });
+
+            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Latest).AddJsonOptions(
+                options =>
+                {
+                    options.JsonSerializerOptions.IgnoreNullValues = true;
+                    options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
                 });
         }
     }
