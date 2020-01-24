@@ -16,6 +16,8 @@
     using Microsoft.Extensions.Localization;
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Options;
+    using SixLabors.ImageSharp;
+    using SixLabors.ImageSharp.Processing;
 
     [ApiController]
     [Route("api/[controller]")]
@@ -209,14 +211,28 @@
                 return NotFound();
             }
 
+            if (request.Avatar != null)
+            {
+                var avatarStream = new MemoryStream(request.Avatar);
+
+                using var image = Image.Load(avatarStream);
+
+                image.Mutate(a => a.Resize(32, 32));
+
+                image.Save(Path.Combine(apiOptions.ImagePath, "avatar", $"{user.UserName}.png"));
+            }
+            else if (user.Email != request.Email)
+            {
+                var stringToHash = GetRandomString(32);
+
+                await httpClient.DownloadFileAsync($"https://www.gravatar.com/avatar/{stringToHash}?d=identicon&s=24", Path.Combine(apiOptions.ImagePath, "avatar", $"{user.UserName}.png"));
+            }
+
             user.Email = request.Email;
             user.EmailHash = request.Email.Md5Hash();
             user.Settings.Background = request.Settings.Background;
             user.Settings.CardSize = request.Settings.CardSize;
             user.CustomData = request.CustomData;
-
-            var stringToHash = GetRandomString(32);
-            await httpClient.DownloadFileAsync($"https://www.gravatar.com/avatar/{stringToHash}?d=identicon&s=24", Path.Combine(apiOptions.ImagePath, "avatar", $"{user.UserName}.png"));
 
             var result = await userService.UpdateUserAsync(user, request.CurrentPassword, request.NewPassword);
             if (!result.Succeeded)
