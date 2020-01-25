@@ -217,7 +217,7 @@
 
                 using var image = Image.Load(avatarStream);
 
-                image.Mutate(a => a.Resize(32, 32));
+                image.Mutate(a => a.Resize(24, 24));
 
                 image.Save(Path.Combine(apiOptions.ImagePath, "avatar", $"{user.UserName}.png"));
             }
@@ -436,31 +436,6 @@
                 Success = true,
                 Username = blockedUsername
             });
-        }
-
-        [Route("api/account/{username}/updateavatar")]
-        [Authorize]
-        [HttpPost]
-        public async Task<IActionResult> UpdateAvatar(string username)
-        {
-            var user = await userService.GetUserFromUsernameAsync(username);
-            if (user == null)
-            {
-                logger.LogWarning($"Attempt to update avatar for unknown user '{username}'");
-
-                return NotFound();
-            }
-
-            var stringToHash = GetRandomString(32).ToLower();
-            var result = await httpClient.DownloadFileAsync($"https://www.gravatar.com/avatar/{stringToHash}?d=identicon&s=24", Path.Combine(apiOptions.ImagePath, "avatar", $"{user.UserName}.png"));
-
-            if (result)
-            {
-                return this.SuccessResponse();
-            }
-
-            logger.LogError($"Error downloading avatar for {username}");
-            return this.FailureResponse(t["An error occurred updating your avatar."]);
         }
 
         private static string GetRandomString(int charCount)
