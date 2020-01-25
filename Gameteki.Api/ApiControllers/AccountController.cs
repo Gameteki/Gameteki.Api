@@ -219,6 +219,7 @@
 
                 image.Mutate(a => a.Resize(24, 24));
 
+                Directory.CreateDirectory(Path.Combine(apiOptions.ImagePath, "avatar"));
                 image.Save(Path.Combine(apiOptions.ImagePath, "avatar", $"{user.UserName}.png"));
             }
             else if (user.Email != request.Email)
