@@ -86,6 +86,7 @@
             services.Configure<AuthMessageSenderOptions>(configuration);
             services.Configure<AuthTokenOptions>(configuration.GetSection("Tokens"));
             services.Configure<GametekiApiOptions>(generalSection);
+            services.Configure<PatreonOptions>(configuration.GetSection("Patreon"));
 
             services.AddControllers();
 

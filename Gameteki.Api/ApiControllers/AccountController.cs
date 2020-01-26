@@ -447,8 +447,9 @@
         public async Task<ActionResult<PatreonLinkResponse>> LinkPatreon(PatreonLinkRequest request)
         {
             await Task.Delay(1);
+            var callbackUrl = $"{HttpContext.Request.Scheme}://{HttpContext.Request.Host}/patreon";
 
-            patreonService.LinkAccount(request.AuthCode);
+            await patreonService.LinkAccountAsync(request.AuthCode, callbackUrl);
 
             return this.SuccessResponse();
         }
