@@ -74,6 +74,7 @@
             services.AddTransient<IEmailSender, EmailSender>();
             services.AddTransient<IMessageService, MessageService>();
             services.AddTransient<IViewRenderService, ViewRenderService>();
+            services.AddTransient<IPatreonService, PatreonService>();
 
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
             services.AddSingleton<IActionContextAccessor, ActionContextAccessor>();

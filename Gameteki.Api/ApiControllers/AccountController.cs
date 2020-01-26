@@ -27,6 +27,7 @@
         private readonly IHttpClient httpClient;
         private readonly ILogger<AccountController> logger;
         private readonly IStringLocalizer<AccountController> t;
+        private readonly IPatreonService patreonService;
         private readonly GametekiApiOptions apiOptions;
 
         public AccountController(
@@ -34,12 +35,14 @@
             IHttpClient httpClient,
             IOptions<GametekiApiOptions> options,
             ILogger<AccountController> logger,
-            IStringLocalizer<AccountController> localizer)
+            IStringLocalizer<AccountController> localizer,
+            IPatreonService patreonService)
         {
             this.userService = userService;
             this.httpClient = httpClient;
             this.logger = logger;
             t = localizer;
+            this.patreonService = patreonService;
 
             apiOptions = options.Value;
         }
@@ -437,6 +440,17 @@
                 Success = true,
                 Username = blockedUsername
             });
+        }
+
+        [HttpPost("linkPatreon")]
+        [Authorize]
+        public async Task<ActionResult<PatreonLinkResponse>> LinkPatreon(PatreonLinkRequest request)
+        {
+            await Task.Delay(1);
+
+            patreonService.LinkAccount(request.AuthCode);
+
+            return this.SuccessResponse();
         }
 
         private static string GetRandomString(int charCount)
