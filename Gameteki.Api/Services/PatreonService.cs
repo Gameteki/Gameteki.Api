@@ -5,6 +5,7 @@
     using System.Threading.Tasks;
     using CrimsonDev.Gameteki.Api.Models.Patreon;
     using CrimsonDev.Gameteki.Data.Models.Config;
+    using CrimsonDev.Gameteki.Data.Models.Patreon;
     using Microsoft.Extensions.Options;
 
     public class PatreonService : IPatreonService
@@ -51,6 +52,14 @@
 
             return await httpClient.PostRequestAsync<TokenResponse>(
                 new Uri($"https://www.patreon.com/api/oauth2/token?code={code}"), request).ConfigureAwait(false);
+        }
+
+        public Task<PatreonUserResponse> GetCurrentUserAsync(string token)
+        {
+            httpClient.AuthToken = token;
+
+            return httpClient.GetRequestAsync<PatreonUserResponse>(
+                new Uri($"https://www.patreon.com/api/oauth2/api/current_user"));
         }
     }
 }

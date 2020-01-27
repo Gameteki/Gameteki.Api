@@ -23,10 +23,7 @@
             httpClient = new HttpClient();
         }
 
-        public Task<bool> DownloadFileAsync(string url, string path)
-        {
-            return DownloadFileAsync(new Uri(url), path);
-        }
+        public string AuthToken { get; set; }
 
         public async Task<bool> DownloadFileAsync(Uri url, string path)
         {
@@ -57,13 +54,6 @@
             }
 
             return true;
-        }
-
-        public Task<TResponse> PostRequestAsync<TResponse, TRequest>(string url, TRequest request = null)
-            where TRequest : class
-            where TResponse : class
-        {
-            return PostRequestAsync<TResponse, TRequest>(new Uri(url), request);
         }
 
         public async Task<TResponse> PostRequestAsync<TResponse, TRequest>(Uri url, TRequest request = null)
@@ -98,14 +88,6 @@
             return null;
         }
 
-        public Task<TResponse> PostRequestAsync<TResponse>(
-            string url,
-            IEnumerable<KeyValuePair<string, string>> request)
-            where TResponse : class
-        {
-            return PostRequestAsync<TResponse>(new Uri(url), request);
-        }
-
         public async Task<TResponse> PostRequestAsync<TResponse>(
             Uri url,
             IEnumerable<KeyValuePair<string, string>> request)
@@ -135,6 +117,31 @@
             logger.LogError(
                 $"Error POSTing to API {url}.  Error code {response.StatusCode}.  Error: {await response.Content.ReadAsStringAsync().ConfigureAwait(false)}");
             return null;
+        }
+
+        public async Task<TResponse> GetRequestAsync<TResponse>(Uri url)
+            where TResponse : class
+        {
+            if (AuthToken != null)
+            {
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AuthToken);
+            }
+
+            string result;
+
+            try
+            {
+                result = await httpClient.GetStringAsync(url).ConfigureAwait(false);
+            }
+            catch (HttpRequestException ex)
+            {
+#pragma warning disable CA1303 // Do not pass literals as localized parameters
+                logger.LogError(ex, $"Error fetching patreon details");
+#pragma warning restore CA1303 // Do not pass literals as localized parameters
+                return null;
+            }
+
+            return JsonSerializer.Deserialize<TResponse>(result);
         }
 
         public void Dispose()

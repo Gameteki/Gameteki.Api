@@ -8,6 +8,7 @@
     using CrimsonDev.Gameteki.Api.Helpers;
     using CrimsonDev.Gameteki.Api.Models;
     using CrimsonDev.Gameteki.Api.Services;
+    using CrimsonDev.Gameteki.Data.Models;
     using CrimsonDev.Gameteki.Data.Models.Api;
     using CrimsonDev.Gameteki.Data.Models.Config;
     using Microsoft.AspNetCore.Authorization;
@@ -466,8 +467,35 @@
         public async Task<ActionResult<PatreonLinkResponse>> LinkPatreon(PatreonLinkRequest request)
         {
             var callbackUrl = new Uri($"{HttpContext.Request.Scheme}://{HttpContext.Request.Host}/patreon");
+            var username = User.Identity.Name;
 
-            await patreonService.LinkAccountAsync(request.AuthCode, callbackUrl).ConfigureAwait(false);
+            var user = await userService.GetUserFromUsernameAsync(username).ConfigureAwait(false);
+            if (user == null)
+            {
+                logger.LogWarning($"Attempt to remove blocklist entry for unknown user '{username}'");
+
+                return NotFound();
+            }
+
+            var patreonToken =
+                await patreonService.LinkAccountAsync(request.AuthCode, callbackUrl).ConfigureAwait(false);
+
+            if (patreonToken == null)
+            {
+                logger.LogError($"Failed to link patreon account for {username}");
+                return this.FailureResponse(
+                    t["An error occured while linking your patreon account.  Please try again later"]);
+            }
+
+            user.PatreonToken = new PatreonToken
+            {
+                Token = patreonToken.AccessToken,
+                RefreshToken = patreonToken.RefreshToken,
+                Expiry = DateTime.UtcNow.AddSeconds(patreonToken.ExpiresIn)
+            };
+
+            await userService.UpdateUserAsync(user).ConfigureAwait(false);
+            var response = await patreonService.GetCurrentUserAsync(user.PatreonToken.Token).ConfigureAwait(false);
 
             return this.SuccessResponse();
         }
