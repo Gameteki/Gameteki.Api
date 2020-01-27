@@ -2,6 +2,7 @@
 {
     using System;
     using System.Diagnostics.CodeAnalysis;
+    using System.Globalization;
     using System.Text;
     using System.Text.Json;
     using System.Threading.Tasks;
@@ -42,6 +43,11 @@
 
         public static void AddGameteki(this IServiceCollection services, IConfiguration configuration)
         {
+            if (configuration == null)
+            {
+                throw new ArgumentNullException(nameof(configuration));
+            }
+
             ConfigureMvc(services, configuration);
             ConfigureServices(services, configuration);
         }
@@ -100,7 +106,7 @@
             var tokens = configuration.GetSection("Tokens").Get<AuthTokenOptions>();
             var generalOptions = configuration.GetSection("General").Get<GametekiApiOptions>() ?? DefaultConfig;
 
-            if (generalOptions.DatabaseProvider.ToLower() == "mssql")
+            if (generalOptions.DatabaseProvider.ToUpperInvariant() == "MSSQL")
             {
                 services.AddDbContext<GametekiDbContext>(settings => settings.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
             }

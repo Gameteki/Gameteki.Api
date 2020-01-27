@@ -16,12 +16,7 @@
 
         public AuthMessageSenderOptions Options { get; }
 
-        public Task SendEmailAsync(string email, string subject, string htmlMessage)
-        {
-            return Execute(Options.SendGridKey, subject, htmlMessage, email);
-        }
-
-        public Task Execute(string apiKey, string subject, string message, string email)
+        public static Task Execute(string apiKey, string subject, string message, string email)
         {
             var client = new SendGridClient(apiKey);
             var msg = new SendGridMessage
@@ -34,6 +29,11 @@
             msg.AddTo(new EmailAddress(email));
 
             return client.SendEmailAsync(msg);
+        }
+
+        public Task SendEmailAsync(string email, string subject, string htmlMessage)
+        {
+            return Execute(Options.SendGridKey, subject, htmlMessage, email);
         }
     }
 }

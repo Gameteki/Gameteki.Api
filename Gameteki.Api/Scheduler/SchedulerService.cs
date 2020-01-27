@@ -21,7 +21,7 @@
         public async Task StartAsync(CancellationToken cancellationToken)
         {
             ISchedulerFactory schedulerFactory = new StdSchedulerFactory();
-            Scheduler = await schedulerFactory.GetScheduler(cancellationToken);
+            Scheduler = await schedulerFactory.GetScheduler(cancellationToken).ConfigureAwait(false);
 
             Scheduler.JobFactory = jobFactory;
 
@@ -32,16 +32,16 @@
                 .WithSimpleSchedule(x => x.WithIntervalInSeconds(30).RepeatForever())
                 .Build();
 
-            await Scheduler.ScheduleJob(job, trigger, cancellationToken);
+            await Scheduler.ScheduleJob(job, trigger, cancellationToken).ConfigureAwait(false);
 
-            await Scheduler.Start(cancellationToken);
+            await Scheduler.Start(cancellationToken).ConfigureAwait(false);
         }
 
         public async Task StopAsync(CancellationToken cancellationToken)
         {
             if (Scheduler != null)
             {
-                await Scheduler.Shutdown(true, cancellationToken);
+                await Scheduler.Shutdown(true, cancellationToken).ConfigureAwait(false);
             }
         }
     }

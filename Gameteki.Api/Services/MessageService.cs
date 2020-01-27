@@ -59,9 +59,9 @@
         {
             try
             {
-                await context.SaveChangesAsync();
+                await context.SaveChangesAsync().ConfigureAwait(false);
             }
-            catch (Exception ex)
+            catch (DbUpdateException ex)
             {
                 logger.LogError(ex, $"Failed to update message {message.Id}");
 
@@ -84,9 +84,9 @@
 
             try
             {
-                await context.SaveChangesAsync();
+                await context.SaveChangesAsync().ConfigureAwait(false);
             }
-            catch (Exception exception)
+            catch (DbUpdateException exception)
             {
                 logger.LogError(exception, $"Error saving message '{message}' for user '{userId}'");
                 return null;

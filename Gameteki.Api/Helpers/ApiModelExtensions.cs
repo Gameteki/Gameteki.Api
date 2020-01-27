@@ -1,5 +1,6 @@
 ﻿namespace CrimsonDev.Gameteki.Api.Helpers
 {
+    using System;
     using CrimsonDev.Gameteki.Data.Constants;
     using CrimsonDev.Gameteki.Data.Models;
     using CrimsonDev.Gameteki.Data.Models.Api;
@@ -8,6 +9,11 @@
     {
         public static ApiUser ToApiUser(this GametekiUser user)
         {
+            if (user == null)
+            {
+                throw new ArgumentNullException(nameof(user));
+            }
+
             var apiUser = new ApiUser();
 
             PopulateApiUser(user, apiUser);
@@ -17,6 +23,11 @@
 
         public static ApiUserAdmin ToApiUserAdmin(this GametekiUser user)
         {
+            if (user == null)
+            {
+                throw new ArgumentNullException(nameof(user));
+            }
+
             var adminUser = new ApiUserAdmin();
 
             PopulateApiUser(user, adminUser);
@@ -29,6 +40,11 @@
 
         public static ApiToken ToApiToken(this RefreshToken token)
         {
+            if (token == null)
+            {
+                throw new ArgumentNullException(nameof(token));
+            }
+
             return new ApiToken
             {
                 Id = token.Id,
@@ -39,6 +55,11 @@
 
         public static ApiLobbyMessage ToApiLobbyMessage(this LobbyMessage message)
         {
+            if (message == null)
+            {
+                throw new ArgumentNullException(nameof(message));
+            }
+
             return new ApiLobbyMessage
             {
                 Id = message.Id,

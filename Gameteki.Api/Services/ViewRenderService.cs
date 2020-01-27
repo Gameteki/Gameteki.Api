@@ -46,44 +46,43 @@
         {
             var actionContext = new ActionContext(httpContext.HttpContext, httpContext.HttpContext.GetRouteData(), this.actionContextAccessor.ActionContext.ActionDescriptor);
 
-            using (var writer = new StringWriter())
+            await using var writer = new StringWriter();
+            var result = razorViewEngine.FindPage(actionContext, pageName);
+
+            if (result.Page == null)
             {
-                var result = razorViewEngine.FindPage(actionContext, pageName);
-
-                if (result.Page == null)
-                {
-                    throw new ArgumentNullException($"The page {pageName} cannot be found.");
-                }
-
-                var view = new RazorView(razorViewEngine, activator, new List<IRazorPage>(), result.Page, HtmlEncoder.Default, new DiagnosticListener("ViewRenderService"));
-                var viewDataDictionary =
-                    new ViewDataDictionary<T>(new EmptyModelMetadataProvider(), new ModelStateDictionary())
-                    {
-                        Model = model
-                    };
-                var viewContext = new ViewContext(
-                    actionContext,
-                    view,
-                    viewDataDictionary,
-                    new TempDataDictionary(httpContext.HttpContext, tempDataProvider),
-                    writer,
-                    new HtmlHelperOptions());
-
-                var page = (Page)result.Page;
-
-                page.PageContext = new PageContext
-                {
-                    ViewData = viewContext.ViewData
-                };
-
-                page.ViewContext = viewContext;
-
-                activator.Activate(page, viewContext);
-
-                await page.ExecuteAsync();
-
-                return writer.ToString();
+                throw new ArgumentNullException($"The page {pageName} cannot be found.");
             }
+
+            using var listener = new DiagnosticListener("ViewRenderService");
+            var view = new RazorView(razorViewEngine, activator, new List<IRazorPage>(), result.Page, HtmlEncoder.Default, listener);
+            var viewDataDictionary =
+                new ViewDataDictionary<T>(new EmptyModelMetadataProvider(), new ModelStateDictionary())
+                {
+                    Model = model
+                };
+            var viewContext = new ViewContext(
+                actionContext,
+                view,
+                viewDataDictionary,
+                new TempDataDictionary(httpContext.HttpContext, tempDataProvider),
+                writer,
+                new HtmlHelperOptions());
+
+            var page = (Page)result.Page;
+
+            page.PageContext = new PageContext
+            {
+                ViewData = viewContext.ViewData
+            };
+
+            page.ViewContext = viewContext;
+
+            activator.Activate(page, viewContext);
+
+            await page.ExecuteAsync().ConfigureAwait(false);
+
+            return writer.ToString();
         }
     }
 }

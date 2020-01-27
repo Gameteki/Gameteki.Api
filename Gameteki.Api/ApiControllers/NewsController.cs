@@ -9,6 +9,7 @@
     using CrimsonDev.Gameteki.Data.Models.Api;
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
+    using Microsoft.Extensions.Localization;
     using Microsoft.Extensions.Logging;
 
     [ApiController]
@@ -17,19 +18,21 @@
         private readonly INewsService newsService;
         private readonly IUserService userService;
         private readonly ILogger<NewsController> logger;
+        private readonly IStringLocalizer<NewsController> t;
 
-        public NewsController(INewsService newsService, IUserService userService, ILogger<NewsController> logger)
+        public NewsController(INewsService newsService, IUserService userService, ILogger<NewsController> logger, IStringLocalizer<NewsController> localizer)
         {
             this.newsService = newsService;
             this.userService = userService;
             this.logger = logger;
+            t = localizer;
         }
 
         [HttpGet]
         [Route("api/news")]
         public async Task<IActionResult> GetNews()
         {
-            var news = await newsService.GetLatestNewsAsync();
+            var news = await newsService.GetLatestNewsAsync().ConfigureAwait(false);
 
             return Json(new GetNewsResponse { Success = true, News = news });
         }
@@ -39,7 +42,7 @@
         [Route("api/news/all")]
         public async Task<IActionResult> GetAllNews()
         {
-            var news = await newsService.GetAllNewsAsync();
+            var news = await newsService.GetAllNewsAsync().ConfigureAwait(false);
 
             return Json(new GetNewsResponse { Success = true, News = news });
         }
@@ -47,13 +50,14 @@
         [HttpPost]
         [Authorize(Roles = Roles.NewsManager)]
         [Route("api/news")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "ASP.NET ensures this is not null")]
         public async Task<IActionResult> AddNews(AddNewsRequest request)
         {
-            var poster = await userService.GetUserFromUsernameAsync(User.Identity.Name);
+            var poster = await userService.GetUserFromUsernameAsync(User.Identity.Name).ConfigureAwait(false);
             if (poster == null)
             {
                 logger.LogError($"Unknown username '{User.Identity.Name}' saving news");
-                return this.FailureResponse("An error occurred saving the news item.");
+                return this.FailureResponse(t["An error occurred saving the news item"]);
             }
 
             var newNews = new News
@@ -63,14 +67,16 @@
                 Text = request.Text
             };
 
-            var result = await newsService.AddNewsAsync(newNews);
+            var result = await newsService.AddNewsAsync(newNews).ConfigureAwait(false);
             if (result)
             {
                 return Json(new AddNewsResponse { Success = true, NewsItem = newNews });
             }
 
+#pragma warning disable CA1303 // Do not pass literals as localized parameters
             logger.LogError("Failed saving news");
-            return this.FailureResponse("An error occurred saving the news item.");
+#pragma warning restore CA1303 // Do not pass literals as localized parameters
+            return this.FailureResponse(t["An error occurred saving the news item."]);
         }
 
         [HttpDelete]
@@ -78,17 +84,17 @@
         [Route("api/news/{newsId}")]
         public async Task<IActionResult> DeleteNews(int newsId)
         {
-            var newsItem = await newsService.FindNewsByIdAsync(newsId);
+            var newsItem = await newsService.FindNewsByIdAsync(newsId).ConfigureAwait(false);
             if (newsItem == null)
             {
                 return NotFound();
             }
 
-            var result = await newsService.DeleteNewsAsync(newsItem);
+            var result = await newsService.DeleteNewsAsync(newsItem).ConfigureAwait(false);
             if (!result)
             {
                 logger.LogError($"Error deleting news item {newsId}");
-                return this.FailureResponse("An error occurred deleting this news entry.");
+                return this.FailureResponse(t["An error occurred deleting this news entry"]);
             }
 
             return Json(new DeleteNewsResponse
@@ -101,9 +107,10 @@
         [HttpPut]
         [Authorize(Roles = Roles.NewsManager)]
         [Route("api/news/{newsId}")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "ASP.NET ensures this is not null")]
         public async Task<IActionResult> SaveNews(int newsId, AddNewsRequest request)
         {
-            var newsItem = await newsService.FindNewsByIdAsync(newsId);
+            var newsItem = await newsService.FindNewsByIdAsync(newsId).ConfigureAwait(false);
             if (newsItem == null)
             {
                 return NotFound();
@@ -111,14 +118,14 @@
 
             newsItem.Text = request.Text;
 
-            var result = await newsService.UpdateNewsAsync(newsItem);
+            var result = await newsService.UpdateNewsAsync(newsItem).ConfigureAwait(false);
             if (result)
             {
                 return Json(new AddNewsResponse { Success = true, NewsItem = newsItem });
             }
 
             logger.LogError($"Failed to update news item {newsId}");
-            return this.FailureResponse("An error occurred saving the news item.");
+            return this.FailureResponse(t["An error occurred saving the news item"]);
         }
     }
 }

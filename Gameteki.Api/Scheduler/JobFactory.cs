@@ -15,6 +15,11 @@
 
         public IJob NewJob(TriggerFiredBundle bundle, IScheduler scheduler)
         {
+            if (bundle == null)
+            {
+                throw new ArgumentNullException(nameof(bundle));
+            }
+
             return container.GetService(bundle.JobDetail.JobType) as IJob;
         }
 

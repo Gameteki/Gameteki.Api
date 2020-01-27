@@ -9,7 +9,7 @@ namespace CrimsonDev.Gameteki.Api.Models.Patreon
         [JsonPropertyName("refresh_token")]
         public string RefreshToken { get; set; }
         [JsonPropertyName("expires_in")]
-        public string ExpiresIn { get; set; }
+        public int ExpiresIn { get; set; }
         public string Scope { get; set; }
         public string TokenType { get; set; }
     }

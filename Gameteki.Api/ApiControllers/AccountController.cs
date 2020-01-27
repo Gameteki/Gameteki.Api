@@ -44,6 +44,11 @@
             t = localizer;
             this.patreonService = patreonService;
 
+            if (options == null)
+            {
+                throw new ArgumentNullException(nameof(options));
+            }
+
             apiOptions = options.Value;
         }
 
@@ -52,7 +57,7 @@
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> RegisterAccount(RegisterAccountRequest request)
         {
-            var result = await userService.RegisterUserAsync(request, HttpContext.Connection.RemoteIpAddress.ToString());
+            var result = await userService.RegisterUserAsync(request, HttpContext.Connection.RemoteIpAddress.ToString()).ConfigureAwait(false);
 
             if (!result.Success)
             {
@@ -68,14 +73,14 @@
 
             if (apiOptions.AccountVerification)
             {
-                var callbackUrl = $"{HttpContext.Request.Scheme}://{HttpContext.Request.Host}/activation?id={result.User.Id}";
+                var callbackUrl = new Uri($"{HttpContext.Request.Scheme}://{HttpContext.Request.Host}/activation?id={result.User.Id}");
                 var verificationModel = new AccountVerificationModel
                 {
                     VerificationUrl = callbackUrl,
-                    SiteUrl = $"{HttpContext.Request.Scheme}://{HttpContext.Request.Host}"
+                    SiteUrl = new Uri($"{HttpContext.Request.Scheme}://{HttpContext.Request.Host}")
                 };
 
-                var emailResult = await userService.SendActivationEmailAsync(result.User, verificationModel);
+                var emailResult = await userService.SendActivationEmailAsync(result.User, verificationModel).ConfigureAwait(false);
                 if (!emailResult)
                 {
                     logger.LogError($"Error sending activation email for {result.User.UserName}");
@@ -83,7 +88,7 @@
             }
 
             var stringToHash = GetRandomString(32);
-            await httpClient.DownloadFileAsync($"https://www.gravatar.com/avatar/{stringToHash}?d=identicon&s=24", Path.Combine(apiOptions.ImagePath, "avatar", $"{result.User.UserName}.png"));
+            await httpClient.DownloadFileAsync(new Uri($"https://www.gravatar.com/avatar/{stringToHash}?d=identicon&s=24"), Path.Combine(apiOptions.ImagePath, "avatar", $"{result.User.UserName}.png")).ConfigureAwait(false);
 
             logger.LogDebug($"Registered new account: '{result.User.UserName}'");
 
@@ -94,9 +99,10 @@
 
         [HttpPost]
         [Route("api/account/activate")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "ASP.NET will ensure this is not null")]
         public async Task<IActionResult> ActivateAccount(VerifyAccountRequest request)
         {
-            var result = await userService.ValidateUserAsync(request.Id, request.Token);
+            var result = await userService.ValidateUserAsync(request.Id, request.Token).ConfigureAwait(false);
 
             if (!result)
             {
@@ -109,9 +115,10 @@
         }
 
         [HttpPost("login")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "ASP.NET will ensure this is not null")]
         public async Task<IActionResult> Login(LoginRequest request)
         {
-            var result = await userService.LoginUserAsync(request.Username, request.Password, HttpContext.Connection.RemoteIpAddress.ToString());
+            var result = await userService.LoginUserAsync(request.Username, request.Password, HttpContext.Connection.RemoteIpAddress.ToString()).ConfigureAwait(false);
 
             if (result == null)
             {
@@ -139,9 +146,10 @@
 
         [Route("api/account/logout")]
         [Authorize]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "ASP.NET will ensure this is not null")]
         public async Task<IActionResult> Logout(RefreshTokenRequest request)
         {
-            var result = await userService.LogoutUserAsync(request.Token, request.RefreshToken);
+            var result = await userService.LogoutUserAsync(request.Token, request.RefreshToken).ConfigureAwait(false);
 
             if (!result)
             {
@@ -157,7 +165,7 @@
         [Authorize]
         public async Task<IActionResult> CheckAuth()
         {
-            var user = await userService.GetUserFromUsernameAsync(User.Identity.Name);
+            var user = await userService.GetUserFromUsernameAsync(User.Identity.Name).ConfigureAwait(false);
 
             if (user != null)
             {
@@ -170,12 +178,13 @@
         }
 
         [HttpPost("token")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "ASP.NET will ensure this is not null")]
         public async Task<IActionResult> GetNewToken(RefreshTokenRequest request)
         {
             var result = await userService.RefreshTokenAsync(
                 request.Token,
                 request.RefreshToken,
-                HttpContext.Connection.RemoteIpAddress.ToString());
+                HttpContext.Connection.RemoteIpAddress.ToString()).ConfigureAwait(false);
             if (result == null)
             {
                 logger.LogWarning(
@@ -198,6 +207,7 @@
 
         [HttpPut("{username}")]
         [Authorize]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "ASP.NET will ensure this is not null")]
         public async Task<IActionResult> UpdateProfile(string username, [FromBody] UpdateProfileRequest request)
         {
             if (username != User.Identity.Name)
@@ -206,7 +216,7 @@
                 return NotFound();
             }
 
-            var user = await userService.GetUserFromUsernameAsync(username);
+            var user = await userService.GetUserFromUsernameAsync(username).ConfigureAwait(false);
 
             if (user == null)
             {
@@ -216,7 +226,7 @@
 
             if (request.Avatar != null)
             {
-                var avatarStream = new MemoryStream(request.Avatar);
+                await using var avatarStream = new MemoryStream(request.Avatar);
 
                 using var image = Image.Load(avatarStream);
 
@@ -229,7 +239,7 @@
             {
                 var stringToHash = GetRandomString(32);
 
-                await httpClient.DownloadFileAsync($"https://www.gravatar.com/avatar/{stringToHash}?d=identicon&s=24", Path.Combine(apiOptions.ImagePath, "avatar", $"{user.UserName}.png"));
+                await httpClient.DownloadFileAsync(new Uri($"https://www.gravatar.com/avatar/{stringToHash}?d=identicon&s=24"), Path.Combine(apiOptions.ImagePath, "avatar", $"{user.UserName}.png")).ConfigureAwait(false);
             }
 
             user.Email = request.Email;
@@ -238,7 +248,7 @@
             user.Settings.CardSize = request.Settings.CardSize;
             user.CustomData = request.CustomData;
 
-            var result = await userService.UpdateUserAsync(user, request.CurrentPassword, request.NewPassword);
+            var result = await userService.UpdateUserAsync(user, request.CurrentPassword, request.NewPassword).ConfigureAwait(false);
             if (!result.Succeeded)
             {
                 foreach (var error in result.Errors)
@@ -259,13 +269,13 @@
                 });
             }
 
-            var clearResult = await userService.ClearRefreshTokensAsync(user);
+            var clearResult = await userService.ClearRefreshTokensAsync(user).ConfigureAwait(false);
             if (!clearResult)
             {
                 return this.FailureResponse(t["An error occurred saving your profile.  Please try again later."]);
             }
 
-            var newToken = await userService.CreateRefreshTokenAsync(user, HttpContext.Connection.RemoteIpAddress.ToString());
+            var newToken = await userService.CreateRefreshTokenAsync(user, HttpContext.Connection.RemoteIpAddress.ToString()).ConfigureAwait(false);
             if (newToken == null)
             {
                 return this.FailureResponse(t["An error occurred saving your profile.  Please try again later."]);
@@ -289,7 +299,7 @@
                 return NotFound();
             }
 
-            var user = await userService.GetUserFromUsernameAsync(username);
+            var user = await userService.GetUserFromUsernameAsync(username).ConfigureAwait(false);
             if (user == null)
             {
                 logger.LogWarning($"Attempt to get user sessions for unknown user: '{username}'");
@@ -316,7 +326,7 @@
                 return NotFound();
             }
 
-            var refreshToken = await userService.GetRefreshTokenByIdAsync(sessionId);
+            var refreshToken = await userService.GetRefreshTokenByIdAsync(sessionId).ConfigureAwait(false);
             if (refreshToken == null)
             {
                 logger.LogWarning($"Attempt to delete unknown user session: '{username}' ({sessionId})");
@@ -324,7 +334,7 @@
                 return NotFound();
             }
 
-            var result = await userService.DeleteRefreshTokenAsync(refreshToken);
+            var result = await userService.DeleteRefreshTokenAsync(refreshToken).ConfigureAwait(false);
             if (!result)
             {
                 logger.LogError($"Failed to delete session '{sessionId}' for user {username}");
@@ -351,7 +361,7 @@
                 return NotFound();
             }
 
-            var user = await userService.GetUserFromUsernameAsync(username);
+            var user = await userService.GetUserFromUsernameAsync(username).ConfigureAwait(false);
             if (user == null)
             {
                 logger.LogWarning($"Attempt to get blocklist for unknown user '{username}'");
@@ -365,6 +375,7 @@
         [Route("api/account/{username}/blocklist")]
         [Authorize]
         [HttpPost]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "ASP.NET will ensure this is not null")]
         public async Task<IActionResult> AddBlockListEntry(string username, BlockListEntryRequest request)
         {
             if (username != User.Identity.Name)
@@ -373,7 +384,7 @@
                 return NotFound();
             }
 
-            var user = await userService.GetUserFromUsernameAsync(username);
+            var user = await userService.GetUserFromUsernameAsync(username).ConfigureAwait(false);
             if (user == null)
             {
                 logger.LogWarning($"Attempt to add blocklist entry for unknown user '{username}'");
@@ -385,7 +396,7 @@
                 return this.FailureResponse(t["The block list already contains this user."]);
             }
 
-            var result = await userService.AddBlockListEntryAsync(user, request.Username);
+            var result = await userService.AddBlockListEntryAsync(user, request.Username).ConfigureAwait(false);
             if (!result)
             {
                 logger.LogError($"Error adding blocklist entry for user '{username}' ({request.Username}'");
@@ -412,7 +423,7 @@
                 return NotFound();
             }
 
-            var user = await userService.GetUserFromUsernameAsync(username);
+            var user = await userService.GetUserFromUsernameAsync(username).ConfigureAwait(false);
             if (user == null)
             {
                 logger.LogWarning($"Attempt to remove blocklist entry for unknown user '{username}'");
@@ -425,7 +436,7 @@
                 return NotFound();
             }
 
-            var result = await userService.RemoveBlockListEntryAsync(user, blockedUsername);
+            var result = await userService.RemoveBlockListEntryAsync(user, blockedUsername).ConfigureAwait(false);
             if (!result)
             {
                 logger.LogWarning($"Error removing blocklist entry for user '{username}' ({blockedUsername})");
@@ -444,12 +455,12 @@
 
         [HttpPost("linkPatreon")]
         [Authorize]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "ASP.NET will ensure this is not null")]
         public async Task<ActionResult<PatreonLinkResponse>> LinkPatreon(PatreonLinkRequest request)
         {
-            await Task.Delay(1);
-            var callbackUrl = $"{HttpContext.Request.Scheme}://{HttpContext.Request.Host}/patreon";
+            var callbackUrl = new Uri($"{HttpContext.Request.Scheme}://{HttpContext.Request.Host}/patreon");
 
-            await patreonService.LinkAccountAsync(request.AuthCode, callbackUrl);
+            await patreonService.LinkAccountAsync(request.AuthCode, callbackUrl).ConfigureAwait(false);
 
             return this.SuccessResponse();
         }

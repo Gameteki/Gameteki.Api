@@ -19,6 +19,11 @@
 
         public NodeMonitor(IConnectionMultiplexer redisConnection, ILogger<NodeMonitor> logger)
         {
+            if (redisConnection == null)
+            {
+                throw new ArgumentNullException(nameof(redisConnection));
+            }
+
             this.logger = logger;
 
             nodeUsers = new Dictionary<string, List<string>>();
@@ -45,7 +50,7 @@
 
                 logger.LogError($"Node '{nodeName}' timed out after no heartbeat for 5 minutes");
 
-                await subscriber.PublishAsync(RedisChannels.UsersDisconnect, JsonConvert.SerializeObject(nodeUsers[nodeName]));
+                await subscriber.PublishAsync(RedisChannels.UsersDisconnect, JsonConvert.SerializeObject(nodeUsers[nodeName])).ConfigureAwait(false);
 
                 nodeUsers[nodeName].Clear();
                 nodeUsers.Remove(nodeName);
