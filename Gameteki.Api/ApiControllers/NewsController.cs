@@ -30,21 +30,27 @@
 
         [HttpGet]
         [Route("api/news")]
-        public async Task<IActionResult> GetNews()
+        public async Task<ActionResult<GetNewsResponse>> GetNews()
         {
             var news = await newsService.GetLatestNewsAsync().ConfigureAwait(false);
 
-            return Json(new GetNewsResponse { Success = true, News = news });
+            var ret = new GetNewsResponse { Success = true };
+            ret.News.AddRange(news);
+
+            return ret;
         }
 
         [HttpGet]
         [Authorize(Roles = Roles.NewsManager)]
         [Route("api/news/all")]
-        public async Task<IActionResult> GetAllNews()
+        public async Task<ActionResult<GetNewsResponse>> GetAllNews()
         {
             var news = await newsService.GetAllNewsAsync().ConfigureAwait(false);
 
-            return Json(new GetNewsResponse { Success = true, News = news });
+            var ret = new GetNewsResponse { Success = true };
+            ret.News.AddRange(news);
+
+            return ret;
         }
 
         [HttpPost]

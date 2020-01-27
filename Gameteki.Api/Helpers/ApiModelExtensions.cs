@@ -79,7 +79,7 @@
                 Background = user.Settings.Background,
                 CardSize = user.Settings.CardSize
             };
-            apiUser.Permissions = new Permissions();
+            apiUser.GametekiPermissions = new GametekiPermissions();
             apiUser.CustomData = user.CustomData;
 
             foreach (var userRole in user.UserRoles)
@@ -87,22 +87,22 @@
                 switch (userRole.Role.Name)
                 {
                     case Roles.UserManager:
-                        apiUser.Permissions.CanManageUsers = true;
+                        apiUser.GametekiPermissions.CanManageUsers = true;
                         break;
                     case Roles.PermissionsManager:
-                        apiUser.Permissions.CanManagePermissions = true;
+                        apiUser.GametekiPermissions.CanManagePermissions = true;
                         break;
                     case Roles.ChatManager:
-                        apiUser.Permissions.CanModerateChat = true;
+                        apiUser.GametekiPermissions.CanModerateChat = true;
                         break;
                     case Roles.GameManager:
-                        apiUser.Permissions.CanManageGames = true;
+                        apiUser.GametekiPermissions.CanManageGames = true;
                         break;
                     case Roles.NewsManager:
-                        apiUser.Permissions.CanEditNews = true;
+                        apiUser.GametekiPermissions.CanEditNews = true;
                         break;
                     case Roles.NodeManager:
-                        apiUser.Permissions.CanManageNodes = true;
+                        apiUser.GametekiPermissions.CanManageNodes = true;
                         break;
                 }
             }

@@ -291,11 +291,12 @@
 
         [Route("api/account/{username}/sessions")]
         [Authorize]
-        public async Task<IActionResult> GetUserSessions(string username)
+        public async Task<ActionResult<GetUserSessionsResponse>> GetUserSessions(string username)
         {
             if (username != User.Identity.Name)
             {
-                logger.LogWarning($"Attempt to get user sessions for wrong user: '{username}' != '{User.Identity.Name}'");
+                logger.LogWarning(
+                    $"Attempt to get user sessions for wrong user: '{username}' != '{User.Identity.Name}'");
                 return NotFound();
             }
 
@@ -307,11 +308,14 @@
             }
 
             logger.LogDebug($"Returning user sessions for {username}");
-            return Ok(new GetUserSessionsResponse
+
+            var ret = new GetUserSessionsResponse
             {
-                Success = true,
-                Tokens = user.RefreshTokens.Select(rt => rt.ToApiToken()).ToList()
-            });
+                Success = true
+            };
+
+            ret.Tokens.AddRange(user.RefreshTokens.Select(rt => rt.ToApiToken()).ToList());
+            return ret;
         }
 
         [Route("api/account/{username}/sessions/{sessionId}")]
@@ -369,7 +373,10 @@
             }
 
             logger.LogDebug($"Returned block list for user '{username}'");
-            return Ok(new GetBlockListResponse { Success = true, BlockList = user.BlockList.Select(bl => bl.BlockedUser).ToList() });
+            var response = new GetBlockListResponse { Success = true };
+            response.BlockList.AddRange(user.BlockList.Select(bl => bl.BlockedUser).ToList());
+
+            return Ok();
         }
 
         [Route("api/account/{username}/blocklist")]

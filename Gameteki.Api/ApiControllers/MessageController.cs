@@ -45,11 +45,18 @@
 
         [HttpGet]
         [Route("api/messages")]
-        public async Task<IActionResult> GetMessages()
+        public async Task<ActionResult<GetMessagesResponse>> GetMessages()
         {
             var messages = await messageService.GetLatestLobbyMessagesAsync().ConfigureAwait(false);
 
-            return Json(new GetMessagesResponse { Success = true, Messages = messages.Select(m => m.ToApiLobbyMessage()).ToList() });
+            var response = new GetMessagesResponse
+            {
+                Success = true
+            };
+
+            response.Messages.AddRange(messages.Select(m => m.ToApiLobbyMessage()).ToList());
+
+            return response;
         }
 
         [HttpPost]

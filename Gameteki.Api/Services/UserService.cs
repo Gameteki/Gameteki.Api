@@ -326,7 +326,7 @@
             return LogoutUserInternalAsync(token, refreshToken);
         }
 
-        public Task<bool> UpdatePermissionsAsync(GametekiUser user, Permissions newPermissions)
+        public Task<bool> UpdatePermissionsAsync(GametekiUser user, GametekiPermissions newPermissions)
         {
             if (user == null)
             {
@@ -374,9 +374,9 @@
             return Convert.ToBase64String(randomNumber);
         }
 
-        private async Task<bool> UpdatePermissionsInternalAsync(GametekiUser user, Permissions newPermissions)
+        private async Task<bool> UpdatePermissionsInternalAsync(GametekiUser user, GametekiPermissions newPermissions)
         {
-            var existingPermissions = user.ToApiUser().Permissions;
+            var existingPermissions = user.ToApiUser().GametekiPermissions;
             var toAdd = new List<string>();
             var toRemove = new List<string>();
 
