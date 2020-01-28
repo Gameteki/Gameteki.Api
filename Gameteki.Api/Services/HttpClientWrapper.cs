@@ -8,7 +8,9 @@
     using System.Net.Http.Headers;
     using System.Text;
     using System.Text.Json;
+    using System.Text.Json.Serialization;
     using System.Threading.Tasks;
+    using CrimsonDev.Gameteki.Api.Helpers;
     using Microsoft.Extensions.Logging;
 
     [ExcludeFromCodeCoverage]
@@ -141,7 +143,13 @@
                 return null;
             }
 
-            return JsonSerializer.Deserialize<TResponse>(result);
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                PropertyNamingPolicy = new JsonSnakeCaseNamingPolicy()
+            };
+
+            return JsonSerializer.Deserialize<TResponse>(result, options);
         }
 
         public void Dispose()

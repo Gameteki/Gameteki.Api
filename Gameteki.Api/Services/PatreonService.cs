@@ -56,7 +56,7 @@
 
         public Task<PatreonUserResponse> GetCurrentUserAsync(string token)
         {
-            httpClient.AuthToken = token;
+            httpClient.AuthToken = "CMGnU2qLf9kcrUezw0fnH6njsel1Oich7Kj49KV301w";
 
             return httpClient.GetRequestAsync<PatreonUserResponse>(
                 new Uri($"https://www.patreon.com/api/oauth2/api/current_user"));
