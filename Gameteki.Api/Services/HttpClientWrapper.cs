@@ -8,9 +8,7 @@
     using System.Net.Http.Headers;
     using System.Text;
     using System.Text.Json;
-    using System.Text.Json.Serialization;
     using System.Threading.Tasks;
-    using CrimsonDev.Gameteki.Api.Helpers;
     using Microsoft.Extensions.Logging;
 
     [ExcludeFromCodeCoverage]
@@ -121,19 +119,16 @@
             return null;
         }
 
-        public async Task<TResponse> GetRequestAsync<TResponse>(Uri url)
-            where TResponse : class
+        public async Task<string> GetRequestAsync(Uri url)
         {
             if (AuthToken != null)
             {
                 httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AuthToken);
             }
 
-            string result;
-
             try
             {
-                result = await httpClient.GetStringAsync(url).ConfigureAwait(false);
+                return await httpClient.GetStringAsync(url).ConfigureAwait(false);
             }
             catch (HttpRequestException ex)
             {
@@ -142,14 +137,6 @@
 #pragma warning restore CA1303 // Do not pass literals as localized parameters
                 return null;
             }
-
-            var options = new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true,
-                PropertyNamingPolicy = new JsonSnakeCaseNamingPolicy()
-            };
-
-            return JsonSerializer.Deserialize<TResponse>(result, options);
         }
 
         public void Dispose()

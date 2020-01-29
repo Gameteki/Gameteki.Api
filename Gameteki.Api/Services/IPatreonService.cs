@@ -9,6 +9,6 @@
     {
         Task<TokenResponse> LinkAccountAsync(string code, string redirectUrl);
         Task<TokenResponse> LinkAccountAsync(string code, Uri redirectUrl);
-        Task<PatreonUserResponse> GetCurrentUserAsync(string token);
+        Task<PatreonUser> GetCurrentUserAsync(string token);
     }
 }

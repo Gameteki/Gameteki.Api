@@ -13,7 +13,6 @@
             where TResponse : class;
         Task<TResponse> PostRequestAsync<TResponse>(Uri url, IEnumerable<KeyValuePair<string, string>> request)
             where TResponse : class;
-        Task<TResponse> GetRequestAsync<TResponse>(Uri url)
-                    where TResponse : class;
+        Task<string> GetRequestAsync(Uri url);
     }
 }

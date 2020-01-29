@@ -4,8 +4,11 @@
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using CrimsonDev.Gameteki.Api.Models.Patreon;
+    using CrimsonDev.Gameteki.Data;
     using CrimsonDev.Gameteki.Data.Models.Config;
     using CrimsonDev.Gameteki.Data.Models.Patreon;
+    using JsonApiFramework.Json;
+    using JsonApiFramework.JsonApi;
     using Microsoft.Extensions.Options;
 
     public class PatreonService : IPatreonService
@@ -54,12 +57,21 @@
                 new Uri($"https://www.patreon.com/api/oauth2/token?code={code}"), request).ConfigureAwait(false);
         }
 
-        public Task<PatreonUserResponse> GetCurrentUserAsync(string token)
+        public async Task<PatreonUser> GetCurrentUserAsync(string token)
         {
             httpClient.AuthToken = "CMGnU2qLf9kcrUezw0fnH6njsel1Oich7Kj49KV301w";
 
-            return httpClient.GetRequestAsync<PatreonUserResponse>(
-                new Uri($"https://www.patreon.com/api/oauth2/api/current_user"));
+            var documentString = await httpClient.GetRequestAsync(
+                new Uri($"https://www.patreon.com/api/oauth2/api/current_user")).ConfigureAwait(false);
+            var document = JsonObject.Parse<Document>(documentString);
+
+            using (var documentContext = new PatreonDocumentContext(document))
+            {
+                var documentType = documentContext.GetDocumentType();
+                var user = documentContext.GetResource(typeof(PatreonUser));
+            }
+
+            return new PatreonUser();
         }
     }
 }
