@@ -132,9 +132,7 @@
             }
             catch (HttpRequestException ex)
             {
-#pragma warning disable CA1303 // Do not pass literals as localized parameters
-                logger.LogError(ex, $"Error fetching patreon details");
-#pragma warning restore CA1303 // Do not pass literals as localized parameters
+                logger.LogError(ex, $"Error in GET request for url {url}");
                 return null;
             }
         }

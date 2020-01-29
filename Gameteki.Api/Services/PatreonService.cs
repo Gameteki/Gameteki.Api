@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Threading.Tasks;
     using CrimsonDev.Gameteki.Api.Models.Patreon;
     using CrimsonDev.Gameteki.Data;
@@ -54,24 +55,54 @@
             };
 
             return await httpClient.PostRequestAsync<TokenResponse>(
-                new Uri($"https://www.patreon.com/api/oauth2/token?code={code}"), request).ConfigureAwait(false);
+                new Uri("https://www.patreon.com/api/oauth2/token"), request).ConfigureAwait(false);
         }
 
-        public async Task<PatreonUser> GetCurrentUserAsync(string token)
+        public async Task<PatreonStatus> GetUserStatus(string token)
         {
-            httpClient.AuthToken = "CMGnU2qLf9kcrUezw0fnH6njsel1Oich7Kj49KV301w";
+            httpClient.AuthToken = token;
 
             var documentString = await httpClient.GetRequestAsync(
-                new Uri($"https://www.patreon.com/api/oauth2/api/current_user")).ConfigureAwait(false);
-            var document = JsonObject.Parse<Document>(documentString);
+                new Uri("https://www.patreon.com/api/oauth2/api/current_user")).ConfigureAwait(false);
 
-            using (var documentContext = new PatreonDocumentContext(document))
+            if (string.IsNullOrEmpty(documentString))
             {
-                var documentType = documentContext.GetDocumentType();
-                var user = documentContext.GetResource(typeof(PatreonUser));
+                return PatreonStatus.NotLinked;
             }
 
-            return new PatreonUser();
+            var document = JsonObject.Parse<Document>(documentString);
+            using var documentContext = new PatreonDocumentContext(document);
+
+            if (!(documentContext.GetResource(typeof(PatreonPledge)) is PatreonPledge pledge))
+            {
+                return PatreonStatus.Linked;
+            }
+
+            if (!pledge.IsPaused && !pledge.DeclinedSince.HasValue)
+            {
+                return PatreonStatus.Pledged;
+            }
+
+            return PatreonStatus.NotLinked;
+        }
+
+        public async Task<TokenResponse> RefreshTokenAsync(string refreshToken)
+        {
+            if (refreshToken == null)
+            {
+                throw new ArgumentNullException(nameof(refreshToken));
+            }
+
+            var request = new Dictionary<string, string>
+            {
+                { "refresh_token", refreshToken },
+                { "grant_type", "refresh_token" },
+                { "client_id", options.ClientId },
+                { "client_secret", options.ClientSecret }
+            };
+
+            return await httpClient.PostRequestAsync<TokenResponse>(
+                new Uri("https://www.patreon.com/api/oauth2/token"), request).ConfigureAwait(false);
         }
     }
 }

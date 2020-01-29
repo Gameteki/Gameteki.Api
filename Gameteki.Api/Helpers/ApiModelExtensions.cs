@@ -4,6 +4,7 @@
     using CrimsonDev.Gameteki.Data.Constants;
     using CrimsonDev.Gameteki.Data.Models;
     using CrimsonDev.Gameteki.Data.Models.Api;
+    using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 
     public static class ApiModelExtensions
     {
@@ -103,6 +104,15 @@
                         break;
                     case Roles.NodeManager:
                         apiUser.GametekiPermissions.CanManageNodes = true;
+                        break;
+                    case Roles.Admin:
+                        apiUser.GametekiPermissions.IsAdmin = true;
+                        break;
+                    case Roles.Contributor:
+                        apiUser.GametekiPermissions.IsContributor = true;
+                        break;
+                    case Roles.Supporter:
+                        apiUser.GametekiPermissions.IsSupporter = true;
                         break;
                 }
             }

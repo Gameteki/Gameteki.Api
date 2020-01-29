@@ -11,6 +11,7 @@
     using CrimsonDev.Gameteki.Data.Models;
     using CrimsonDev.Gameteki.Data.Models.Api;
     using CrimsonDev.Gameteki.Data.Models.Config;
+    using CrimsonDev.Gameteki.Data.Models.Patreon;
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Mvc;
@@ -164,18 +165,46 @@
 
         [HttpPost("checkauth")]
         [Authorize]
-        public async Task<IActionResult> CheckAuth()
+        public async Task<ActionResult<CheckAuthResponse>> CheckAuth()
         {
             var user = await userService.GetUserFromUsernameAsync(User.Identity.Name).ConfigureAwait(false);
-
-            if (user != null)
+            if (user == null)
             {
-                logger.LogDebug($"Check auth succeeded for {User.Identity.Name}");
-                return Ok(new CheckAuthResponse { Success = true, User = user.ToApiUser() });
+                logger.LogWarning($"AUTH: Failed check auth for '{User.Identity.Name}'");
+                return this.FailureResponse(t["An error occurred.  Please try again later."]);
             }
 
-            logger.LogWarning($"AUTH: Failed check auth for '{User.Identity.Name}'");
-            return this.FailureResponse(t["An error occurred.  Please try again later."]);
+            logger.LogDebug($"Check auth succeeded for {User.Identity.Name}");
+
+            if (user.PatreonToken == null)
+            {
+                return new CheckAuthResponse { Success = true, User = user.ToApiUser() };
+            }
+
+            if (user.PatreonToken.Expiry >= DateTime.UtcNow)
+            {
+                var token = await patreonService.RefreshTokenAsync(user.PatreonToken.RefreshToken)
+                    .ConfigureAwait(false);
+
+                if (token == null)
+                {
+                    return new CheckAuthResponse { Success = true, User = user.ToApiUser() };
+                }
+
+                user.PatreonToken = new PatreonToken
+                {
+                    Token = token.AccessToken,
+                    RefreshToken = token.RefreshToken,
+                    Expiry = DateTime.UtcNow.AddSeconds(token.ExpiresIn)
+                };
+
+                await userService.UpdateUserAsync(user).ConfigureAwait(false);
+            }
+
+            var apiUser = user.ToApiUser();
+            apiUser.PatreonStatus = await patreonService.GetUserStatus(user.PatreonToken.Token).ConfigureAwait(false);
+
+            return new CheckAuthResponse { Success = true, User = apiUser };
         }
 
         [HttpPost("token")]
@@ -495,7 +524,13 @@
             };
 
             await userService.UpdateUserAsync(user).ConfigureAwait(false);
-            var response = await patreonService.GetCurrentUserAsync(user.PatreonToken.Token).ConfigureAwait(false);
+            var patreonStatus = await patreonService.GetUserStatus(user.PatreonToken.Token).ConfigureAwait(false);
+
+            var permissions = user.ToApiUser().GametekiPermissions;
+
+            permissions.IsSupporter = patreonStatus == PatreonStatus.Pledged;
+
+            await userService.UpdatePermissionsAsync(user, permissions).ConfigureAwait(false);
 
             return this.SuccessResponse();
         }

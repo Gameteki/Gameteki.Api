@@ -344,6 +344,7 @@
         protected virtual async Task<GametekiUser> GetUserFromUsernameInternalAsync(string username)
         {
             return await context.Users
+                .Include(u => u.PatreonToken)
                 .Include(u => u.RefreshTokens)
                 .Include(u => u.BlockList)
                 .Include(u => u.UserRoles)
@@ -386,6 +387,9 @@
             ProcessPermission(newPermissions.CanManagePermissions, existingPermissions.CanManagePermissions, Roles.PermissionsManager, toRemove, toAdd);
             ProcessPermission(newPermissions.CanManageUsers, existingPermissions.CanManageUsers, Roles.UserManager, toRemove, toAdd);
             ProcessPermission(newPermissions.CanModerateChat, existingPermissions.CanModerateChat, Roles.ChatManager, toRemove, toAdd);
+            ProcessPermission(newPermissions.IsSupporter, existingPermissions.IsSupporter, Roles.Supporter, toRemove, toAdd);
+            ProcessPermission(newPermissions.IsContributor, existingPermissions.IsContributor, Roles.Contributor, toRemove, toAdd);
+            ProcessPermission(newPermissions.IsAdmin, existingPermissions.IsAdmin, Roles.Admin, toRemove, toAdd);
 
             foreach (var roleToAdd in toAdd)
             {
