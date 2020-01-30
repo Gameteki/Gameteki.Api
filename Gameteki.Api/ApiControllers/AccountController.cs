@@ -343,17 +343,11 @@
             return ret;
         }
 
-        [Route("api/account/{username}/sessions/{sessionId}")]
+        [HttpDelete("sessions/{sessionId}")]
         [Authorize]
-        [HttpDelete]
-        public async Task<IActionResult> DeleteUserSession(string username, int sessionId)
+        public async Task<IActionResult> DeleteUserSession(int sessionId)
         {
-            if (username != User.Identity.Name)
-            {
-                logger.LogWarning($"Attempt to delete user session for wrong user: '{username}' != '{User.Identity.Name}'");
-
-                return NotFound();
-            }
+            var username = User.Identity.Name;
 
             var refreshToken = await userService.GetRefreshTokenByIdAsync(sessionId).ConfigureAwait(false);
             if (refreshToken == null)
