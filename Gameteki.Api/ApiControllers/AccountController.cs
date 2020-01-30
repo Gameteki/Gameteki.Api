@@ -319,16 +319,11 @@
             });
         }
 
-        [Route("api/account/{username}/sessions")]
+        [HttpGet("sessions")]
         [Authorize]
-        public async Task<ActionResult<GetUserSessionsResponse>> GetUserSessions(string username)
+        public async Task<ActionResult<GetUserSessionsResponse>> GetUserSessions()
         {
-            if (username != User.Identity.Name)
-            {
-                logger.LogWarning(
-                    $"Attempt to get user sessions for wrong user: '{username}' != '{User.Identity.Name}'");
-                return NotFound();
-            }
+            var username = User.Identity.Name;
 
             var user = await userService.GetUserFromUsernameAsync(username).ConfigureAwait(false);
             if (user == null)
