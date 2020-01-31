@@ -168,18 +168,6 @@
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1303:Do not pass literals as localized parameters", Justification = "Temp")]
         public async Task<ActionResult<CheckAuthResponse>> CheckAuth()
         {
-            logger.LogDebug("Request Method: {Method}", HttpContext.Request.Method);
-            logger.LogDebug("Request Scheme: {Scheme}", HttpContext.Request.Scheme);
-            logger.LogDebug("Request Path: {Path}", HttpContext.Request.Path);
-
-            // Headers
-            foreach (var header in HttpContext.Request.Headers)
-            {
-                logger.LogDebug("Header: {Key}: {Value}", header.Key, header.Value);
-            }
-
-            // Connection: RemoteIp
-            logger.LogDebug("Request RemoteIp: {RemoteIpAddress}", HttpContext.Connection.RemoteIpAddress);
             var user = await userService.GetUserFromUsernameAsync(User.Identity.Name).ConfigureAwait(false);
             if (user == null)
             {
