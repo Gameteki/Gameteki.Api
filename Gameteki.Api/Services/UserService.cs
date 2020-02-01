@@ -478,7 +478,8 @@
         {
             try
             {
-                var blockListEntry = await context.BlockListEntry.SingleOrDefaultAsync(bl => bl.BlockedUser.Equals(username, StringComparison.InvariantCultureIgnoreCase)).ConfigureAwait(false);
+                var blockListEntry = await context.BlockListEntry.SingleOrDefaultAsync(bl => bl.BlockedUser == username)
+                    .ConfigureAwait(false);
 
                 context.BlockListEntry.Remove(blockListEntry);
 

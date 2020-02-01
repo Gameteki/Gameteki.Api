@@ -374,16 +374,11 @@
             });
         }
 
-        [Route("api/account/{username}/blocklist")]
         [Authorize]
-        [HttpGet]
-        public async Task<IActionResult> GetBlockList(string username)
+        [HttpGet("blocklist")]
+        public async Task<ActionResult<GetBlockListResponse>> GetBlockList()
         {
-            if (username != User.Identity.Name)
-            {
-                logger.LogWarning($"Attempt to get blocklist for wrong user: '{username}' != '{User.Identity.Name}'");
-                return NotFound();
-            }
+            var username = User.Identity.Name;
 
             var user = await userService.GetUserFromUsernameAsync(username).ConfigureAwait(false);
             if (user == null)
@@ -396,20 +391,15 @@
             var response = new GetBlockListResponse { Success = true };
             response.BlockList.AddRange(user.BlockList.Select(bl => bl.BlockedUser).ToList());
 
-            return Ok();
+            return response;
         }
 
-        [Route("api/account/{username}/blocklist")]
         [Authorize]
-        [HttpPost]
+        [HttpPut("blocklist/{entry}")]
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "ASP.NET will ensure this is not null")]
-        public async Task<IActionResult> AddBlockListEntry(string username, BlockListEntryRequest request)
+        public async Task<ActionResult<BlockListEntryResponse>> AddBlockListEntry(string entry)
         {
-            if (username != User.Identity.Name)
-            {
-                logger.LogWarning($"Attempt to add blocklist entry for wrong user: '{username}' != '{User.Identity.Name}'");
-                return NotFound();
-            }
+            var username = User.Identity.Name;
 
             var user = await userService.GetUserFromUsernameAsync(username).ConfigureAwait(false);
             if (user == null)
@@ -418,37 +408,32 @@
                 return NotFound();
             }
 
-            if (user.BlockList.Any(bl => bl.BlockedUser.Equals(request.Username, StringComparison.InvariantCultureIgnoreCase)))
+            if (user.BlockList.Any(bl => bl.BlockedUser == entry))
             {
                 return this.FailureResponse(t["The block list already contains this user."]);
             }
 
-            var result = await userService.AddBlockListEntryAsync(user, request.Username).ConfigureAwait(false);
+            var result = await userService.AddBlockListEntryAsync(user, entry).ConfigureAwait(false);
             if (!result)
             {
-                logger.LogError($"Error adding blocklist entry for user '{username}' ({request.Username}'");
+                logger.LogError($"Error adding blocklist entry for user '{username}' ({entry}'");
                 return this.FailureResponse(t["An error occurred adding the block list entry."]);
             }
 
-            logger.LogDebug($"Added blocklist entry '{request.Username}' to user '{username}'");
-            return Ok(new BlockListEntryResponse
+            logger.LogDebug($"Added blocklist entry '{entry}' to user '{username}'");
+            return new BlockListEntryResponse
             {
                 Success = true,
-                Username = request.Username
-            });
+                Username = entry,
+                Message = t["Blocklist entry added successfully"]
+            };
         }
 
-        [Route("api/account/{username}/blocklist/{blockedUsername}")]
         [Authorize]
-        [HttpDelete]
-        public async Task<IActionResult> RemoveBlockListEntry(string username, string blockedUsername)
+        [HttpDelete("blocklist/{blockedUsername}")]
+        public async Task<ActionResult<BlockListEntryResponse>> RemoveBlockListEntry(string blockedUsername)
         {
-            if (username != User.Identity.Name)
-            {
-                logger.LogWarning($"Attempt to remove blocklist entry for wrong user: '{username}' != '{User.Identity.Name}'");
-
-                return NotFound();
-            }
+            var username = User.Identity.Name;
 
             var user = await userService.GetUserFromUsernameAsync(username).ConfigureAwait(false);
             if (user == null)
@@ -458,7 +443,7 @@
                 return NotFound();
             }
 
-            if (!user.BlockList.Any(bl => bl.BlockedUser.Equals(blockedUsername, StringComparison.InvariantCultureIgnoreCase)))
+            if (!user.BlockList.Any(bl => bl.BlockedUser == blockedUsername))
             {
                 return NotFound();
             }
@@ -473,11 +458,12 @@
 
             logger.LogDebug($"Removed blocklist entry '{blockedUsername}' for user '{username}'");
 
-            return Ok(new BlockListEntryResponse
+            return new BlockListEntryResponse
             {
                 Success = true,
-                Username = blockedUsername
-            });
+                Username = blockedUsername,
+                Message = t["Blocklist entry deleted successfully"]
+            };
         }
 
         [HttpPost("linkPatreon")]
