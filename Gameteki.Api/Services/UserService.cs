@@ -672,7 +672,7 @@
                 DateTime.UtcNow.AddMinutes(5),
                 new SigningCredentials(key, SecurityAlgorithms.HmacSha256))
             {
-                Payload = { ["UserData"] = user.ToApiUser(), ["BlockList"] = user.BlockList }
+                Payload = { ["UserData"] = user.ToApiUser() }
             };
 
             return new JwtSecurityTokenHandler().WriteToken(jwt);

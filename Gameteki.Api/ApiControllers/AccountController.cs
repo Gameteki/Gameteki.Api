@@ -168,7 +168,7 @@
             }
 
             logger.LogInformation($"AUTH: Logout succeeded for user '{User.Identity.Name}'");
-            return this.SuccessResponse();
+            return this.SuccessResponse(t["You have been logged out"]);
         }
 
         [HttpPost("checkauth")]
