@@ -24,7 +24,7 @@
         [HttpGet]
         [Route("api/user/{username}")]
         [Authorize(Roles = Roles.UserManager)]
-        public async Task<IActionResult> FindUser(string username)
+        public async Task<ActionResult<ApiResponse>> FindUser(string username)
         {
             var user = await userService.GetUserFromUsernameAsync(username).ConfigureAwait(false);
             if (user == null)
@@ -34,18 +34,18 @@
 
             var userForAdmin = user.ToApiUserAdmin();
 
-            return Json(new FindUserResponse
+            return new FindUserResponse
             {
                 Success = true,
                 User = userForAdmin
-            });
+            };
         }
 
         [HttpPut]
         [Route("api/user/{username}")]
         [Authorize(Roles = Roles.UserManager)]
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "ASP.NET Ensures this is not null")]
-        public async Task<IActionResult> UpdateUser(string username, ApiUserAdmin request)
+        public async Task<ActionResult<ApiResponse>> UpdateUser(string username, ApiUserAdmin request)
         {
             var user = await userService.GetUserFromUsernameAsync(username).ConfigureAwait(false);
             if (user == null)

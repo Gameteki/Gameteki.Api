@@ -12,6 +12,7 @@
     using CrimsonDev.Gameteki.Data.Models.Api;
     using CrimsonDev.Gameteki.Data.Models.Config;
     using CrimsonDev.Gameteki.Data.Models.Patreon;
+    using Microsoft.AspNetCore.Authentication;
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Mvc;
@@ -23,6 +24,7 @@
 
     [ApiController]
     [Route("api/[controller]")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "ASP.NET will ensure this is not null")]
     public class AccountController : ControllerBase
     {
         private readonly IUserService userService;
@@ -57,7 +59,7 @@
         [HttpPost("register")]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public async Task<IActionResult> RegisterAccount(RegisterAccountRequest request)
+        public async Task<ActionResult<ApiResponse>> RegisterAccount(RegisterAccountRequest request)
         {
             var result = await userService.RegisterUserAsync(request, HttpContext.Connection.RemoteIpAddress.ToString()).ConfigureAwait(false);
 
@@ -94,15 +96,16 @@
 
             logger.LogDebug($"Registered new account: '{result.User.UserName}'");
 
-            return this.SuccessResponse(apiOptions.AccountVerification ?
-                t["Your account was successfully registered, please verify your account using the link in the email sent to the address you have provided"] :
-                t["Your account was successfully registered"]);
+            return this.SuccessResponse(apiOptions.AccountVerification
+                ? t["Your account was successfully registered, please verify your account using the link in the email sent to the address you have provided"]
+                : t["Your account was successfully registered"]);
         }
 
         [HttpPost]
         [Route("api/account/activate")]
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "ASP.NET will ensure this is not null")]
-        public async Task<IActionResult> ActivateAccount(VerifyAccountRequest request)
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<ActionResult<ApiResponse>> ActivateAccount(VerifyAccountRequest request)
         {
             var result = await userService.ValidateUserAsync(request.Id, request.Token).ConfigureAwait(false);
 
@@ -117,8 +120,9 @@
         }
 
         [HttpPost("login")]
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "ASP.NET will ensure this is not null")]
-        public async Task<IActionResult> Login(LoginRequest request)
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<ActionResult<ApiResponse>> Login(LoginRequest request)
         {
             var result = await userService.LoginUserAsync(request.Username, request.Password, HttpContext.Connection.RemoteIpAddress.ToString()).ConfigureAwait(false);
 
@@ -143,19 +147,23 @@
             };
 
             logger.LogInformation($"AUTH: Successful login for {request.Username}");
-            return Ok(response);
+            return response;
         }
 
-        [Route("api/account/logout")]
+        [HttpPost("logout")]
         [Authorize]
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "ASP.NET will ensure this is not null")]
-        public async Task<IActionResult> Logout(RefreshTokenRequest request)
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<ActionResult<ApiResponse>> Logout(LogoutRequest request)
         {
-            var result = await userService.LogoutUserAsync(request.Token, request.RefreshToken).ConfigureAwait(false);
+            var authResult = await HttpContext.AuthenticateAsync().ConfigureAwait(false);
+            var token = authResult.Properties.GetString(".Token.access_token");
+
+            var result = await userService.LogoutUserAsync(token, request.RefreshToken).ConfigureAwait(false);
 
             if (!result)
             {
-                logger.LogWarning($"AUTH: Failed logout for user '{User.Identity.Name}', tokens '{request.Token}' '{request.RefreshToken}'");
+                logger.LogWarning($"AUTH: Failed logout for user '{User.Identity.Name}', tokens '{request}'");
                 return this.FailureResponse(t["An error occurred logging you out.  Please try again later."]);
             }
 
@@ -165,8 +173,9 @@
 
         [HttpPost("checkauth")]
         [Authorize]
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1303:Do not pass literals as localized parameters", Justification = "Temp")]
-        public async Task<ActionResult<CheckAuthResponse>> CheckAuth()
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<ActionResult<ApiResponse>> CheckAuth()
         {
             var user = await userService.GetUserFromUsernameAsync(User.Identity.Name).ConfigureAwait(false);
             if (user == null)
@@ -209,8 +218,9 @@
         }
 
         [HttpPost("token")]
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "ASP.NET will ensure this is not null")]
-        public async Task<IActionResult> GetNewToken(RefreshTokenRequest request)
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<ActionResult<ApiResponse>> GetNewToken(RefreshTokenRequest request)
         {
             var result = await userService.RefreshTokenAsync(
                 request.Token,
@@ -227,19 +237,18 @@
             logger.LogDebug(
                 $"Successful token refresh for '{result.User.UserName}' using token '{request.Token} " +
                 $"and refresh token '{request.RefreshToken}'");
-            return Ok(new LoginResponse
+            return new LoginResponse
             {
                 Success = true,
                 RefreshToken = result.RefreshToken,
                 Token = result.Token,
                 User = result.User.ToApiUser()
-            });
+            };
         }
 
         [HttpPut("{username}")]
         [Authorize]
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "ASP.NET will ensure this is not null")]
-        public async Task<IActionResult> UpdateProfile(string username, [FromBody] UpdateProfileRequest request)
+        public async Task<ActionResult<ApiResponse>> UpdateProfile(string username, [FromBody] UpdateProfileRequest request)
         {
             if (username != User.Identity.Name)
             {
@@ -292,12 +301,12 @@
 
             if (request.CurrentPassword == null || request.NewPassword == null)
             {
-                return Ok(new UpdateProfileResponse
+                return new UpdateProfileResponse
                 {
                     Success = true,
                     User = user.ToApiUser(),
                     Token = null
-                });
+                };
             }
 
             var clearResult = await userService.ClearRefreshTokensAsync(user).ConfigureAwait(false);
@@ -312,12 +321,12 @@
                 return this.FailureResponse(t["An error occurred saving your profile.  Please try again later."]);
             }
 
-            return Ok(new UpdateProfileResponse
+            return new UpdateProfileResponse
             {
                 Success = true,
                 User = user.ToApiUser(),
                 Token = newToken
-            });
+            };
         }
 
         [HttpGet("sessions")]
@@ -346,7 +355,7 @@
 
         [HttpDelete("sessions/{sessionId}")]
         [Authorize]
-        public async Task<IActionResult> DeleteUserSession(int sessionId)
+        public async Task<ActionResult<ApiResponse>> DeleteUserSession(int sessionId)
         {
             var username = User.Identity.Name;
 
@@ -396,8 +405,7 @@
 
         [Authorize]
         [HttpPut("blocklist/{entry}")]
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "ASP.NET will ensure this is not null")]
-        public async Task<ActionResult<BlockListEntryResponse>> AddBlockListEntry(string entry)
+        public async Task<ActionResult<ApiResponse>> AddBlockListEntry(string entry)
         {
             var username = User.Identity.Name;
 
@@ -431,7 +439,7 @@
 
         [Authorize]
         [HttpDelete("blocklist/{blockedUsername}")]
-        public async Task<ActionResult<BlockListEntryResponse>> RemoveBlockListEntry(string blockedUsername)
+        public async Task<ActionResult<ApiResponse>> RemoveBlockListEntry(string blockedUsername)
         {
             var username = User.Identity.Name;
 
@@ -443,7 +451,7 @@
                 return NotFound();
             }
 
-            if (!user.BlockList.Any(bl => bl.BlockedUser == blockedUsername))
+            if (user.BlockList.All(bl => bl.BlockedUser != blockedUsername))
             {
                 return NotFound();
             }
@@ -468,8 +476,7 @@
 
         [HttpPost("linkPatreon")]
         [Authorize]
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "ASP.NET will ensure this is not null")]
-        public async Task<ActionResult<PatreonLinkResponse>> LinkPatreon(PatreonLinkRequest request)
+        public async Task<ActionResult<ApiResponse>> LinkPatreon(PatreonLinkRequest request)
         {
             var callbackUrl = new Uri($"{HttpContext.Request.Scheme}://{HttpContext.Request.Host}/patreon");
             var username = User.Identity.Name;

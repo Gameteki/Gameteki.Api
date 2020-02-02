@@ -63,7 +63,7 @@
         [Route("api/messages")]
         [Authorize]
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "ASP.NET will ensure this is not null")]
-        public async Task<IActionResult> AddMessage([FromBody] AddMessageRequest request)
+        public async Task<ActionResult<ApiResponse>> AddMessage([FromBody] AddMessageRequest request)
         {
             Debug.Assert(request != null, "Asp.net core failed us and request was null");
 
@@ -87,13 +87,13 @@
 
             await subscriber.PublishAsync(RedisChannels.LobbyMessage, JsonConvert.SerializeObject(apiMessage)).ConfigureAwait(false);
 
-            return Json(new AddMessageResponse { Success = true, NewMessage = apiMessage });
+            return new AddMessageResponse { Success = true, NewMessage = apiMessage };
         }
 
         [HttpDelete]
         [Route("api/messages/{messageId}")]
         [Authorize(Roles = Roles.ChatManager)]
-        public async Task<IActionResult> RemoveMessage(int messageId)
+        public async Task<ActionResult<ApiResponse>> RemoveMessage(int messageId)
         {
             var user = await userService.GetUserFromUsernameAsync(User.Identity.Name).ConfigureAwait(false);
             if (user == null)
@@ -121,7 +121,7 @@
 
             await subscriber.PublishAsync(RedisChannels.LobbyMessageRemoved, messageId).ConfigureAwait(false);
 
-            return Json(new DeleteMessageResponse { Success = true, MessageId = messageId });
+            return new DeleteMessageResponse { Success = true, MessageId = messageId };
         }
     }
 }

@@ -5,18 +5,14 @@
 
     public static class ApiResponseExtensions
     {
-        public static JsonResult FailureResponse(this ControllerBase controller, string message)
+        public static ApiResponse FailureResponse(this ControllerBase controller, string message = null)
         {
-            return new JsonResult(new ApiResponse
-            {
-                Success = false,
-                Message = message
-            });
+            return new ApiResponse { Success = false, Message = message };
         }
 
-        public static JsonResult SuccessResponse(this ControllerBase controller, string message = null)
+        public static ApiResponse SuccessResponse(this ControllerBase controller, string message = null)
         {
-            return new JsonResult(new ApiResponse { Success = true, Message = message });
+            return new ApiResponse { Success = true, Message = message };
         }
     }
 }

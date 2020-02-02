@@ -57,7 +57,7 @@
         [Authorize(Roles = Roles.NewsManager)]
         [Route("api/news")]
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "ASP.NET ensures this is not null")]
-        public async Task<IActionResult> AddNews(AddNewsRequest request)
+        public async Task<ActionResult<ApiResponse>> AddNews(AddNewsRequest request)
         {
             var poster = await userService.GetUserFromUsernameAsync(User.Identity.Name).ConfigureAwait(false);
             if (poster == null)
@@ -76,7 +76,7 @@
             var result = await newsService.AddNewsAsync(newNews).ConfigureAwait(false);
             if (result)
             {
-                return Json(new AddNewsResponse { Success = true, NewsItem = newNews });
+                return new AddNewsResponse { Success = true, NewsItem = newNews };
             }
 
 #pragma warning disable CA1303 // Do not pass literals as localized parameters
@@ -88,7 +88,7 @@
         [HttpDelete]
         [Authorize(Roles = Roles.NewsManager)]
         [Route("api/news/{newsId}")]
-        public async Task<IActionResult> DeleteNews(int newsId)
+        public async Task<ActionResult<ApiResponse>> DeleteNews(int newsId)
         {
             var newsItem = await newsService.FindNewsByIdAsync(newsId).ConfigureAwait(false);
             if (newsItem == null)
@@ -103,18 +103,18 @@
                 return this.FailureResponse(t["An error occurred deleting this news entry"]);
             }
 
-            return Json(new DeleteNewsResponse
+            return new DeleteNewsResponse
             {
                 Success = true,
                 Id = newsItem.Id
-            });
+            };
         }
 
         [HttpPut]
         [Authorize(Roles = Roles.NewsManager)]
         [Route("api/news/{newsId}")]
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "ASP.NET ensures this is not null")]
-        public async Task<IActionResult> SaveNews(int newsId, AddNewsRequest request)
+        public async Task<ActionResult<ApiResponse>> SaveNews(int newsId, AddNewsRequest request)
         {
             var newsItem = await newsService.FindNewsByIdAsync(newsId).ConfigureAwait(false);
             if (newsItem == null)
@@ -127,7 +127,7 @@
             var result = await newsService.UpdateNewsAsync(newsItem).ConfigureAwait(false);
             if (result)
             {
-                return Json(new AddNewsResponse { Success = true, NewsItem = newsItem });
+                return new AddNewsResponse { Success = true, NewsItem = newsItem };
             }
 
             logger.LogError($"Failed to update news item {newsId}");

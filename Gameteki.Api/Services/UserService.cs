@@ -313,11 +313,6 @@
 
         public Task<bool> LogoutUserAsync(string token, string refreshToken)
         {
-            if (token == null)
-            {
-                throw new ArgumentNullException(nameof(token));
-            }
-
             if (refreshToken == null)
             {
                 throw new ArgumentNullException(nameof(refreshToken));
@@ -432,7 +427,7 @@
 
             var dbToken = await context.RefreshToken
                 .Include(rt => rt.User)
-                .SingleOrDefaultAsync(rt => rt.User.UserName.Equals(claimsPrincipal.Identity.Name, StringComparison.InvariantCultureIgnoreCase) && rt.Token == refreshToken).ConfigureAwait(false);
+                .SingleOrDefaultAsync(rt => rt.User.UserName == claimsPrincipal.Identity.Name && rt.Token == refreshToken).ConfigureAwait(false);
 
             if (dbToken == null)
             {
