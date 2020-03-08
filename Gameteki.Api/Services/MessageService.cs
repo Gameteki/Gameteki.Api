@@ -25,13 +25,8 @@
             return context.LobbyMessage.Include(m => m.Sender).Where(m => !m.Removed).OrderBy(m => m.MessageDateTime).Take(100).ToListAsync();
         }
 
-        public Task<LobbyMessage> AddMessageAsync(string userId, string message)
+        public Task<LobbyMessage> AddMessageAsync(int userId, string message)
         {
-            if (string.IsNullOrEmpty(userId))
-            {
-                throw new ArgumentNullException(nameof(userId));
-            }
-
             if (string.IsNullOrEmpty(message))
             {
                 throw new ArgumentNullException(nameof(message));
@@ -71,7 +66,7 @@
             return true;
         }
 
-        private async Task<LobbyMessage> AddMessageInternalAsync(string userId, string message)
+        private async Task<LobbyMessage> AddMessageInternalAsync(int userId, string message)
         {
             var newMessage = new LobbyMessage
             {

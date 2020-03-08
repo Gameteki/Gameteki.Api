@@ -3,6 +3,7 @@
     using System;
     using System.IO;
     using System.Linq;
+    using System.Security.Claims;
     using System.Security.Cryptography;
     using System.Threading.Tasks;
     using CrimsonDev.Gameteki.Api.Helpers;
@@ -56,6 +57,8 @@
             apiOptions = options.Value;
         }
 
+/*
+
         [HttpPost("register")]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -99,9 +102,9 @@
             return this.SuccessResponse(apiOptions.AccountVerification
                 ? t["Your account was successfully registered, please verify your account using the link in the email sent to the address you have provided"]
                 : t["Your account was successfully registered"]);
-        }
+        }*/
 
-        [HttpPost]
+/*        [HttpPost]
         [Route("api/account/activate")]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -117,9 +120,9 @@
 
             logger.LogDebug($"Verified account id '{request.Id}'");
             return this.SuccessResponse();
-        }
+        }*/
 
-        [HttpPost("login")]
+/*        [HttpPost("login")]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult<ApiResponse>> Login(LoginRequest request)
@@ -132,23 +135,22 @@
                 return Unauthorized();
             }
 
-            if (!result.User.EmailConfirmed)
+/*            if (!result.User.EmailConfirmed)
             {
                 logger.LogWarning($"AUTH: Failed login attempt for ${request.Username} (Email not confirmed)");
                 return this.FailureResponse(t["You must verify your account before trying to log in.  Please see the email we sent you for more details."]);
-            }
+            }#1#
 
             var response = new LoginResponse
             {
                 Success = true,
                 User = result.User.ToApiUser(),
-                Token = result.Token,
-                RefreshToken = result.RefreshToken
+                Token = result.Token
             };
 
             logger.LogInformation($"AUTH: Successful login for {request.Username}");
             return response;
-        }
+        }*/
 
         [HttpPost("logout")]
         [Authorize]
@@ -159,7 +161,7 @@
             var authResult = await HttpContext.AuthenticateAsync().ConfigureAwait(false);
             var token = authResult.Properties.GetString(".Token.access_token");
 
-            var result = await userService.LogoutUserAsync(token, request.RefreshToken).ConfigureAwait(false);
+            var result = await userService.LogoutUserAsync(token).ConfigureAwait(false);
 
             if (!result)
             {
@@ -177,12 +179,9 @@
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult<ApiResponse>> CheckAuth()
         {
-            var user = await userService.GetUserFromUsernameAsync(User.Identity.Name).ConfigureAwait(false);
-            if (user == null)
-            {
-                logger.LogWarning($"AUTH: Failed check auth for '{User.Identity.Name}'");
-                return this.FailureResponse(t["An error occurred.  Please try again later."]);
-            }
+            var userId = User.FindFirstValue("sub");
+
+            var user = await userService.CreateOrUpdateUserAsync(userId, User.FindFirstValue("name"), User.FindFirstValue("email")).ConfigureAwait(false);
 
             logger.LogDebug($"Check auth succeeded for {User.Identity.Name}");
 
@@ -208,42 +207,13 @@
                     Expiry = DateTime.UtcNow.AddSeconds(token.ExpiresIn)
                 };
 
-                await userService.UpdateUserAsync(user).ConfigureAwait(false);
+                await userService.UpdateUserAsync().ConfigureAwait(false);
             }
 
             var apiUser = user.ToApiUser();
             apiUser.PatreonStatus = await patreonService.GetUserStatus(user.PatreonToken.Token).ConfigureAwait(false);
 
             return new CheckAuthResponse { Success = true, User = apiUser };
-        }
-
-        [HttpPost("token")]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        public async Task<ActionResult<ApiResponse>> GetNewToken(RefreshTokenRequest request)
-        {
-            var result = await userService.RefreshTokenAsync(
-                request.Token,
-                request.RefreshToken,
-                HttpContext.Connection.RemoteIpAddress.ToString()).ConfigureAwait(false);
-            if (result == null)
-            {
-                logger.LogWarning(
-                    $"AUTH: Failed token refresh for '{User.Identity.Name}' token '{request.Token}' " +
-                    $"and refresh token '{request.RefreshToken}'");
-                return this.FailureResponse(t["An error occurred refreshing your token.  Please try again later."]);
-            }
-
-            logger.LogDebug(
-                $"Successful token refresh for '{result.User.UserName}' using token '{request.Token} " +
-                $"and refresh token '{request.RefreshToken}'");
-            return new LoginResponse
-            {
-                Success = true,
-                RefreshToken = result.RefreshToken,
-                Token = result.Token,
-                User = result.User.ToApiUser()
-            };
         }
 
         [HttpPut("{username}")]
@@ -288,7 +258,7 @@
             user.Settings.CardSize = request.Settings.CardSize;
             user.CustomData = request.CustomData;
 
-            var result = await userService.UpdateUserAsync(user, request.CurrentPassword, request.NewPassword).ConfigureAwait(false);
+            var result = await userService.UpdateUserAsync().ConfigureAwait(false);
             if (!result.Succeeded)
             {
                 foreach (var error in result.Errors)
@@ -304,83 +274,15 @@
                 return new UpdateProfileResponse
                 {
                     Success = true,
-                    User = user.ToApiUser(),
-                    Token = null
+                    User = user.ToApiUser()
                 };
-            }
-
-            var clearResult = await userService.ClearRefreshTokensAsync(user).ConfigureAwait(false);
-            if (!clearResult)
-            {
-                return this.FailureResponse(t["An error occurred saving your profile.  Please try again later."]);
-            }
-
-            var newToken = await userService.CreateRefreshTokenAsync(user, HttpContext.Connection.RemoteIpAddress.ToString()).ConfigureAwait(false);
-            if (newToken == null)
-            {
-                return this.FailureResponse(t["An error occurred saving your profile.  Please try again later."]);
             }
 
             return new UpdateProfileResponse
             {
                 Success = true,
-                User = user.ToApiUser(),
-                Token = newToken
+                User = user.ToApiUser()
             };
-        }
-
-        [HttpGet("sessions")]
-        [Authorize]
-        public async Task<ActionResult<GetUserSessionsResponse>> GetUserSessions()
-        {
-            var username = User.Identity.Name;
-
-            var user = await userService.GetUserFromUsernameAsync(username).ConfigureAwait(false);
-            if (user == null)
-            {
-                logger.LogWarning($"Attempt to get user sessions for unknown user: '{username}'");
-                return NotFound();
-            }
-
-            logger.LogDebug($"Returning user sessions for {username}");
-
-            var ret = new GetUserSessionsResponse
-            {
-                Success = true
-            };
-
-            ret.Tokens.AddRange(user.RefreshTokens.Select(rt => rt.ToApiToken()).ToList());
-            return ret;
-        }
-
-        [HttpDelete("sessions/{sessionId}")]
-        [Authorize]
-        public async Task<ActionResult<ApiResponse>> DeleteUserSession(int sessionId)
-        {
-            var username = User.Identity.Name;
-
-            var refreshToken = await userService.GetRefreshTokenByIdAsync(sessionId).ConfigureAwait(false);
-            if (refreshToken == null)
-            {
-                logger.LogWarning($"Attempt to delete unknown user session: '{username}' ({sessionId})");
-
-                return NotFound();
-            }
-
-            var result = await userService.DeleteRefreshTokenAsync(refreshToken).ConfigureAwait(false);
-            if (!result)
-            {
-                logger.LogError($"Failed to delete session '{sessionId}' for user {username}");
-                return this.FailureResponse(t["An error occurred deleting the session.  Please try again later."]);
-            }
-
-            logger.LogDebug($"Deleted session '{sessionId}' for user '{username}'");
-            return Ok(new DeleteSessionResponse
-            {
-                Success = true,
-                TokenId = refreshToken.Id,
-                Message = t["Session deleted successfully"]
-            });
         }
 
         [Authorize]
@@ -506,7 +408,7 @@
                 Expiry = DateTime.UtcNow.AddSeconds(patreonToken.ExpiresIn)
             };
 
-            await userService.UpdateUserAsync(user).ConfigureAwait(false);
+            await userService.UpdateUserAsync().ConfigureAwait(false);
             var patreonStatus = await patreonService.GetUserStatus(user.PatreonToken.Token).ConfigureAwait(false);
 
             var permissions = user.ToApiUser().GametekiPermissions;

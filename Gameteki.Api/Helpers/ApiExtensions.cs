@@ -2,10 +2,8 @@
 {
     using System;
     using System.Diagnostics.CodeAnalysis;
-    using System.Globalization;
-    using System.Text;
+    using System.IdentityModel.Tokens.Jwt;
     using System.Text.Json;
-    using System.Threading.Tasks;
     using CrimsonDev.Gameteki.Api.Models;
     using CrimsonDev.Gameteki.Api.Scheduler;
     using CrimsonDev.Gameteki.Api.Services;
@@ -15,7 +13,6 @@
     using I18Next.Net.AspNetCore;
     using I18Next.Net.Backends;
     using I18Next.Net.Extensions;
-    using Microsoft.AspNetCore.Authentication.JwtBearer;
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Identity;
@@ -26,7 +23,6 @@
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
-    using Microsoft.IdentityModel.Tokens;
     using Quartz.Spi;
     using StackExchange.Redis;
 
@@ -72,9 +68,6 @@
 
             services.AddScoped<DbContext, GametekiDbContext>();
 
-            services.AddTransient<UserManager<GametekiUser>>();
-            services.AddTransient<IRoleStore<GametekiRole>, RoleStore<GametekiRole>>();
-            services.AddTransient<RoleManager<GametekiRole>>();
             services.AddTransient<IGametekiDbContext, GametekiDbContext>();
             services.AddTransient<INewsService, NewsService>();
             services.AddTransient<IEmailSender, EmailSender>();
@@ -96,14 +89,13 @@
 
             services.AddControllers();
 
-            services.AddI18NextLocalization(i18n => i18n.IntegrateToAspNetCore()
+            services.AddI18NextLocalization(i18N => i18N.IntegrateToAspNetCore()
                 .AddBackend(new JsonFileBackend("wwwroot/locales"))
                 .UseDefaultLanguage("en"));
         }
 
         private static void ConfigureMvc(IServiceCollection services, IConfiguration configuration)
         {
-            var tokens = configuration.GetSection("Tokens").Get<AuthTokenOptions>();
             var generalOptions = configuration.GetSection("General").Get<GametekiApiOptions>() ?? DefaultConfig;
 
             if (generalOptions.DatabaseProvider.ToUpperInvariant() == "MSSQL")
@@ -115,41 +107,11 @@
                 services.AddDbContext<GametekiDbContext>(settings => settings.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
             }
 
-            services.AddIdentityCore<GametekiUser>(settings => { settings.User.RequireUniqueEmail = true; })
-                .AddEntityFrameworkStores<GametekiDbContext>()
-                .AddDefaultTokenProviders();
-
-            services.AddAuthentication(
-                settings =>
-                {
-                    settings.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                    settings.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-                }).AddJwtBearer(
-                options =>
-                {
-                    options.TokenValidationParameters = new TokenValidationParameters
-                    {
-                        ValidateIssuer = true,
-                        ValidIssuer = tokens.Issuer,
-                        ValidateAudience = true,
-                        ValidAudience = tokens.Issuer,
-                        ValidateIssuerSigningKey = true,
-                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(tokens.Key)),
-                        ClockSkew = TimeSpan.Zero
-                    };
-                    options.Events = new JwtBearerEvents
-                    {
-                        OnAuthenticationFailed = context =>
-                        {
-                            if (context.Exception.GetType() == typeof(SecurityTokenExpiredException))
-                            {
-                                context.Response.Headers.Add("Token-Expired", "true");
-                            }
-
-                            return Task.CompletedTask;
-                        }
-                    };
-                });
+            services.AddAuthentication("Bearer").AddIdentityServerAuthentication(options =>
+            {
+                options.Authority = "https://localhost:7001";
+                options.ApiName = "api1";
+            });
 
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Latest).AddJsonOptions(
                 options =>

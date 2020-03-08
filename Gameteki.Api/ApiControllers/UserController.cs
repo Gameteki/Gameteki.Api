@@ -53,10 +53,10 @@
                 return NotFound();
             }
 
-            user.EmailConfirmed = request.Verified;
+            // user.EmailConfirmed = request.Verified;
             user.Disabled = request.Disabled;
 
-            var result = await userService.UpdateUserAsync(user).ConfigureAwait(false);
+            var result = await userService.UpdateUserAsync().ConfigureAwait(false);
             if (!result.Succeeded)
             {
                 return this.FailureResponse(t["An error occurred saving the user details"]);

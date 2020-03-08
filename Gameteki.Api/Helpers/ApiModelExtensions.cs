@@ -34,24 +34,9 @@
             PopulateApiUser(user, adminUser);
 
             adminUser.Disabled = user.Disabled;
-            adminUser.Verified = user.EmailConfirmed;
 
+            // adminUser.Verified = user.EmailConfirmed;
             return adminUser;
-        }
-
-        public static ApiToken ToApiToken(this RefreshToken token)
-        {
-            if (token == null)
-            {
-                throw new ArgumentNullException(nameof(token));
-            }
-
-            return new ApiToken
-            {
-                Id = token.Id,
-                Ip = token.IpAddress,
-                LastUsed = token.LastUsed
-            };
         }
 
         public static ApiLobbyMessage ToApiLobbyMessage(this LobbyMessage message)

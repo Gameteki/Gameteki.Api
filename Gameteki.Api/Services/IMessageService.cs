@@ -7,7 +7,7 @@
     public interface IMessageService
     {
         Task<List<LobbyMessage>> GetLatestLobbyMessagesAsync();
-        Task<LobbyMessage> AddMessageAsync(string userId, string message);
+        Task<LobbyMessage> AddMessageAsync(int userId, string message);
         Task<LobbyMessage> FindByIdAsync(int messageId);
         Task<bool> UpdateMessageAsync(LobbyMessage message);
     }

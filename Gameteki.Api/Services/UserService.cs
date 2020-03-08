@@ -5,15 +5,12 @@
     using System.IdentityModel.Tokens.Jwt;
     using System.Linq;
     using System.Security.Claims;
-    using System.Security.Cryptography;
     using System.Text;
     using System.Threading.Tasks;
     using CrimsonDev.Gameteki.Api.Helpers;
-    using CrimsonDev.Gameteki.Api.Models;
     using CrimsonDev.Gameteki.Data;
     using CrimsonDev.Gameteki.Data.Constants;
     using CrimsonDev.Gameteki.Data.Models;
-    using CrimsonDev.Gameteki.Data.Models.Api;
     using CrimsonDev.Gameteki.Data.Models.Config;
     using Microsoft.AspNetCore.Identity;
     using Microsoft.AspNetCore.Identity.UI.Services;
@@ -25,9 +22,7 @@
 
     public class UserService : IUserService
     {
-        private const int TokenExpiry = 30;
         private readonly IGametekiDbContext context;
-        private readonly UserManager<GametekiUser> userManager;
         private readonly GametekiApiOptions apiOptions;
         private readonly IEmailSender emailSender;
         private readonly IViewRenderService viewRenderService;
@@ -37,7 +32,6 @@
 
         protected UserService(
             IGametekiDbContext context,
-            UserManager<GametekiUser> userManager,
             IOptions<AuthTokenOptions> optionsAccessor,
             IOptions<GametekiApiOptions> lobbyOptions,
             IEmailSender emailSender,
@@ -56,7 +50,6 @@
             }
 
             this.context = context;
-            this.userManager = userManager;
             apiOptions = lobbyOptions.Value;
             this.emailSender = emailSender;
             this.viewRenderService = viewRenderService;
@@ -66,7 +59,7 @@
             tokenOptions = optionsAccessor.Value;
         }
 
-        public async Task<RegisterAccountResult> RegisterUserAsync(RegisterAccountRequest request, string ipAddress)
+        /*public async Task<RegisterAccountResult> RegisterUserAsync(RegisterAccountRequest request, string ipAddress)
         {
             if (request == null)
             {
@@ -89,12 +82,10 @@
             {
                 Email = request.Email,
                 UserName = request.Username,
-                LockoutEnabled = true,
                 RegisteredDate = DateTime.UtcNow,
                 Settings = new UserSettings(),
                 EmailHash = request.Email.Md5Hash(),
-                RegisterIp = ipAddress,
-                EmailConfirmed = !apiOptions.AccountVerification
+                RegisterIp = ipAddress
             };
 
             try
@@ -126,9 +117,9 @@
             }
 
             return RegisterAccountResult.Succeeded(newUser);
-        }
+        }*/
 
-        public async Task<bool> SendActivationEmailAsync(GametekiUser user, AccountVerificationModel model)
+        /*public async Task<bool> SendActivationEmailAsync(GametekiUser user, AccountVerificationModel model)
         {
             if (user == null)
             {
@@ -162,9 +153,9 @@
             }
 
             return true;
-        }
+        }*/
 
-        public async Task<bool> ValidateUserAsync(string userId, string token)
+/*        public async Task<bool> ValidateUserAsync(string userId, string token)
         {
             if (string.IsNullOrEmpty(userId))
             {
@@ -189,9 +180,9 @@
             }
 
             return true;
-        }
+        }*/
 
-        public Task<LoginResult> LoginUserAsync(string username, string password, string ipAddress)
+/*        public Task<LoginResult> LoginUserAsync(string username, string password, string ipAddress)
         {
             if (string.IsNullOrEmpty(username))
             {
@@ -203,22 +194,17 @@
                 throw new ArgumentNullException(nameof(password));
             }
 
-            return LoginUserInternalAsync(username, password, ipAddress);
-        }
+            return LoginUserInternalAsync(username, password);
+        }*/
 
-        public Task<RefreshToken> CreateRefreshTokenAsync(GametekiUser user, string ipAddress)
+        public Task<GametekiUser> GetUserFromIdAsync(string userId)
         {
-            if (user == null)
+            if (string.IsNullOrEmpty(userId))
             {
-                throw new ArgumentNullException(nameof(user));
+                throw new ArgumentNullException(nameof(userId));
             }
 
-            if (ipAddress == null)
-            {
-                throw new ArgumentNullException(nameof(ipAddress));
-            }
-
-            return CreateRefreshTokenInternalAsync(user, ipAddress);
+            return GetUserFromIdInternalAsync(userId);
         }
 
         public virtual Task<GametekiUser> GetUserFromUsernameAsync(string username)
@@ -229,36 +215,6 @@
             }
 
             return GetUserFromUsernameInternalAsync(username);
-        }
-
-        public Task<LoginResult> RefreshTokenAsync(string token, string refreshToken, string ipAddress)
-        {
-            if (token == null)
-            {
-                throw new ArgumentNullException(nameof(token));
-            }
-
-            if (refreshToken == null)
-            {
-                throw new ArgumentNullException(nameof(refreshToken));
-            }
-
-            return RefreshTokenInternalAsync(token, refreshToken, ipAddress);
-        }
-
-        public Task<RefreshToken> GetRefreshTokenByIdAsync(int tokenId)
-        {
-            return context.RefreshToken.SingleOrDefaultAsync(t => t.Id == tokenId);
-        }
-
-        public Task<bool> DeleteRefreshTokenAsync(RefreshToken token)
-        {
-            if (token == null)
-            {
-                throw new ArgumentNullException(nameof(token));
-            }
-
-            return DeleteRefreshTokenInternalAsync(token);
         }
 
         public Task<bool> AddBlockListEntryAsync(GametekiUser user, string username)
@@ -291,34 +247,14 @@
             return RemoveBlockListEntryInternalAsync(username);
         }
 
-        public Task<IdentityResult> UpdateUserAsync(GametekiUser user, string existingPassword = null, string newPassword = null)
+        public Task<IdentityResult> UpdateUserAsync()
         {
-            if (user == null)
-            {
-                throw new ArgumentNullException(nameof(user));
-            }
-
-            return UpdateUserInternalAsync(user, existingPassword, newPassword);
+            return UpdateUserInternalAsync();
         }
 
-        public Task<bool> ClearRefreshTokensAsync(GametekiUser user)
+        public Task<bool> LogoutUserAsync(string token)
         {
-            if (user == null)
-            {
-                throw new ArgumentNullException(nameof(user));
-            }
-
-            return ClearRefreshTokensInternalAsync(user);
-        }
-
-        public Task<bool> LogoutUserAsync(string token, string refreshToken)
-        {
-            if (refreshToken == null)
-            {
-                throw new ArgumentNullException(nameof(refreshToken));
-            }
-
-            return LogoutUserInternalAsync(token, refreshToken);
+            return LogoutUserInternalAsync(token);
         }
 
         public Task<bool> UpdatePermissionsAsync(GametekiUser user, GametekiPermissions newPermissions)
@@ -336,11 +272,47 @@
             return UpdatePermissionsInternalAsync(user, newPermissions);
         }
 
+        public async Task<GametekiUser> CreateOrUpdateUserAsync(string userId, string username, string email)
+        {
+            var user = await context.Users.Include(u => u.UserRoles).Include(u => u.BlockList).Include(u => u.PatreonToken).FirstOrDefaultAsync(u => u.ExternalId == userId)
+                           .ConfigureAwait(false) ?? new GametekiUser
+                       {
+                           ExternalId = userId,
+                           LastLoginDate = DateTime.UtcNow,
+                           RegisteredDate = DateTime.UtcNow,
+                           Settings = new UserSettings()
+                       };
+
+            if (user.Id == 0)
+            {
+                user = (await context.Users.AddAsync(user).ConfigureAwait(false)).Entity;
+            }
+
+            user.LastLoginDate = DateTime.UtcNow;
+            user.UserName = username;
+            user.Email = email;
+            user.EmailHash = email.Md5Hash();
+
+            await context.SaveChangesAsync().ConfigureAwait(false);
+
+            return user;
+        }
+
+        protected virtual async Task<GametekiUser> GetUserFromIdInternalAsync(string userId)
+        {
+            return await context.Users
+                .Include(u => u.PatreonToken)
+                .Include(u => u.BlockList)
+                .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.User)
+                .Include("UserRoles.Role")
+                .SingleOrDefaultAsync(u => u.ExternalId == userId).ConfigureAwait(false);
+        }
+
         protected virtual async Task<GametekiUser> GetUserFromUsernameInternalAsync(string username)
         {
             return await context.Users
                 .Include(u => u.PatreonToken)
-                .Include(u => u.RefreshTokens)
                 .Include(u => u.BlockList)
                 .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.User)
@@ -359,15 +331,6 @@
             {
                 toAdd.Add(roleName);
             }
-        }
-
-        private static string GenerateRefreshToken()
-        {
-            var randomNumber = new byte[32];
-            using var rng = RandomNumberGenerator.Create();
-
-            rng.GetBytes(randomNumber);
-            return Convert.ToBase64String(randomNumber);
         }
 
         private async Task<bool> UpdatePermissionsInternalAsync(GametekiUser user, GametekiPermissions newPermissions)
@@ -417,24 +380,13 @@
             return true;
         }
 
-        private async Task<bool> LogoutUserInternalAsync(string token, string refreshToken)
+        private async Task<bool> LogoutUserInternalAsync(string token)
         {
             var claimsPrincipal = GetPrincipalFromExpiredToken(token);
             if (claimsPrincipal == null)
             {
                 return false;
             }
-
-            var dbToken = await context.RefreshToken
-                .Include(rt => rt.User)
-                .SingleOrDefaultAsync(rt => rt.User.UserName == claimsPrincipal.Identity.Name && rt.Token == refreshToken).ConfigureAwait(false);
-
-            if (dbToken == null)
-            {
-                return false;
-            }
-
-            context.RefreshToken.Remove(dbToken);
 
             try
             {
@@ -446,23 +398,6 @@
                 logger.LogError(exception, "Failed to remove refresh token");
 #pragma warning restore CA1303 // Do not pass literals as localized parameters
 
-                return false;
-            }
-
-            return true;
-        }
-
-        private async Task<bool> ClearRefreshTokensInternalAsync(GametekiUser user)
-        {
-            user.RefreshTokens.Clear();
-
-            try
-            {
-                await context.SaveChangesAsync().ConfigureAwait(false);
-            }
-            catch (DbUpdateException exception)
-            {
-                logger.LogError(exception, $"Error clearing refresh tokens for user {user.UserName}");
                 return false;
             }
 
@@ -484,49 +419,6 @@
             {
                 logger.LogError($"Error deleting block list entry '{username}'", ex);
 
-                return false;
-            }
-
-            return true;
-        }
-
-        private async Task<RefreshToken> CreateRefreshTokenInternalAsync(GametekiUser user, string ipAddress)
-        {
-            var token = new RefreshToken
-            {
-                UserId = user.Id,
-                IpAddress = ipAddress,
-                Expires = DateTime.UtcNow.AddDays(TokenExpiry),
-                LastUsed = DateTime.UtcNow,
-                Token = GenerateRefreshToken()
-            };
-
-            try
-            {
-                user.RefreshTokens.Add(token);
-                context.RefreshToken.Add(token);
-
-                await context.SaveChangesAsync().ConfigureAwait(false);
-            }
-            catch (DbUpdateException ex)
-            {
-                logger.LogError($"Error creating refresh token for {user.UserName} ({ipAddress})", ex);
-                return null;
-            }
-
-            return token;
-        }
-
-        private async Task<bool> DeleteRefreshTokenInternalAsync(RefreshToken token)
-        {
-            try
-            {
-                context.RefreshToken.Remove(token);
-                await context.SaveChangesAsync().ConfigureAwait(false);
-            }
-            catch (DbUpdateException ex)
-            {
-                logger.LogError($"Error deleting refresh token: {token.Id}/{token.Token}", ex);
                 return false;
             }
 
@@ -555,7 +447,7 @@
             return true;
         }
 
-        private async Task<IdentityResult> UpdateUserInternalAsync(GametekiUser user, string existingPassword, string newPassword)
+        private async Task<IdentityResult> UpdateUserInternalAsync()
         {
             try
             {
@@ -569,51 +461,14 @@
                 return IdentityResult.Failed(new IdentityError { Code = "Internal Error", Description = t["An error occurred saving your profile.  Please try again later"] });
             }
 
-            if (existingPassword == null || newPassword == null)
-            {
-                return IdentityResult.Success;
-            }
+            // if (existingPassword == null || newPassword == null)
+            // {
+            return IdentityResult.Success;
 
-            var result = await userManager.ChangePasswordAsync(user, existingPassword, newPassword).ConfigureAwait(false);
-
-            return !result.Succeeded ? result : IdentityResult.Success;
+            // }
         }
 
-        private async Task<LoginResult> RefreshTokenInternalAsync(string token, string refreshToken, string ipAddress)
-        {
-            var claimsPrincipal = GetPrincipalFromExpiredToken(token);
-            if (claimsPrincipal == null)
-            {
-                return null;
-            }
-
-            var dbToken = await context.RefreshToken
-                .Include(rt => rt.User)
-                .ThenInclude(u => u.UserRoles)
-                .ThenInclude(ur => ur.User)
-                .Include("User.UserRoles.Role")
-                .SingleOrDefaultAsync(rt => rt.User.UserName == claimsPrincipal.Identity.Name && rt.Token == refreshToken).ConfigureAwait(false);
-
-            if (dbToken == null)
-            {
-                return null;
-            }
-
-            var result = await UpdateRefreshTokenUsage(dbToken, ipAddress).ConfigureAwait(false);
-            if (!result)
-            {
-                return null;
-            }
-
-            return new LoginResult
-            {
-                RefreshToken = dbToken.Token,
-                User = dbToken.User,
-                Token = GenerateTokenForUser(dbToken.User)
-            };
-        }
-
-        private async Task<LoginResult> LoginUserInternalAsync(string username, string password, string ipAddress)
+/*        private async Task<LoginResult> LoginUserInternalAsync(string username, string password)
         {
             var user = await GetUserFromUsernameAsync(username).ConfigureAwait(false);
             if (user == null)
@@ -632,12 +487,10 @@
                 return null;
             }
 
-            var refreshToken = await CreateRefreshTokenAsync(user, ipAddress).ConfigureAwait(false);
             var result = new LoginResult
             {
                 Token = GenerateTokenForUser(user),
-                User = user,
-                RefreshToken = refreshToken.Token
+                User = user
             };
 
             user.LastLoginDate = DateTime.UtcNow;
@@ -645,7 +498,7 @@
             await context.SaveChangesAsync().ConfigureAwait(false);
 
             return result;
-        }
+        }*/
 
         private Task<bool> IsUsernameInUseAsync(string username)
         {
@@ -676,24 +529,6 @@
             };
 
             return new JwtSecurityTokenHandler().WriteToken(jwt);
-        }
-
-        private async Task<bool> UpdateRefreshTokenUsage(RefreshToken token, string ipAddress)
-        {
-            token.IpAddress = ipAddress;
-            token.LastUsed = DateTime.UtcNow;
-            token.Expires = DateTime.UtcNow.AddDays(TokenExpiry);
-
-            try
-            {
-                await context.SaveChangesAsync().ConfigureAwait(false);
-            }
-            catch (DbUpdateException)
-            {
-                return false;
-            }
-
-            return true;
         }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Validate token can throw too many exception types")]
