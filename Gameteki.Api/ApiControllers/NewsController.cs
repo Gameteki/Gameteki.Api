@@ -42,7 +42,7 @@
 
         [HttpGet]
         [Authorize(Roles = Roles.NewsManager)]
-        [Route("api/news/all")]
+        [Route("api/news/admin")]
         public async Task<ActionResult<GetNewsResponse>> GetAllNews()
         {
             var news = await newsService.GetAllNewsAsync().ConfigureAwait(false);

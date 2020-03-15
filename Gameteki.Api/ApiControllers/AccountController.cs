@@ -7,7 +7,6 @@
     using System.Security.Cryptography;
     using System.Threading.Tasks;
     using CrimsonDev.Gameteki.Api.Helpers;
-    using CrimsonDev.Gameteki.Api.Models;
     using CrimsonDev.Gameteki.Api.Services;
     using CrimsonDev.Gameteki.Data.Models;
     using CrimsonDev.Gameteki.Data.Models.Api;

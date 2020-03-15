@@ -274,7 +274,12 @@
 
         public async Task<GametekiUser> CreateOrUpdateUserAsync(string userId, string username, string email)
         {
-            var user = await context.Users.Include(u => u.UserRoles).Include(u => u.BlockList).Include(u => u.PatreonToken).FirstOrDefaultAsync(u => u.ExternalId == userId)
+            var user = await context.Users
+                           .Include(u => u.BlockList)
+                           .Include(u => u.PatreonToken)
+                           .Include(u => u.UserRoles)
+                           .ThenInclude(ur => ur.Role)
+                           .FirstOrDefaultAsync(u => u.ExternalId == userId)
                            .ConfigureAwait(false) ?? new GametekiUser
                        {
                            ExternalId = userId,
