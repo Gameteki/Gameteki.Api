@@ -30,7 +30,7 @@ namespace CrimsonDev.Gameteki.Api.Services
 
         public Task<List<News>> GetAllNewsAsync()
         {
-            return context.News.OrderByDescending(n => n.DatePublished).ToListAsync();
+            return context.News.Include(n => n.Poster).OrderByDescending(n => n.DatePublished).ToListAsync();
         }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1303:Do not pass literals as localized parameters", Justification = "Logs aren't localised")]

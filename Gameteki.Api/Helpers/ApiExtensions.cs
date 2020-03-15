@@ -13,6 +13,7 @@
     using I18Next.Net.AspNetCore;
     using I18Next.Net.Backends;
     using I18Next.Net.Extensions;
+    using Microsoft.AspNetCore.Authentication;
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Identity;
@@ -74,6 +75,7 @@
             services.AddTransient<IMessageService, MessageService>();
             services.AddTransient<IViewRenderService, ViewRenderService>();
             services.AddTransient<IPatreonService, PatreonService>();
+            services.AddTransient<IClaimsTransformation, ClaimsTransformer>();
 
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
             services.AddSingleton<IActionContextAccessor, ActionContextAccessor>();

@@ -76,7 +76,8 @@
             var result = await newsService.AddNewsAsync(newNews).ConfigureAwait(false);
             if (result)
             {
-                return new AddNewsResponse { Success = true, NewsItem = newNews };
+                newNews.Poster = poster;
+                return new AddNewsResponse { Success = true, NewsItem = newNews, Message = t["News item added successfully"] };
             }
 
 #pragma warning disable CA1303 // Do not pass literals as localized parameters
@@ -106,7 +107,8 @@
             return new DeleteNewsResponse
             {
                 Success = true,
-                Id = newsItem.Id
+                Id = newsItem.Id,
+                Message = t["News item deleted successfully"]
             };
         }
 
