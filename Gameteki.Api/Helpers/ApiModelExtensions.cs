@@ -65,7 +65,7 @@
                 Background = user.Settings.Background,
                 CardSize = user.Settings.CardSize
             };
-            apiUser.GametekiPermissions = new GametekiPermissions();
+            apiUser.Permissions = new GametekiPermissions();
             apiUser.CustomData = user.CustomData;
 
             foreach (var userRole in user.UserRoles)
@@ -73,31 +73,31 @@
                 switch (userRole.Role.Name)
                 {
                     case Roles.UserManager:
-                        apiUser.GametekiPermissions.CanManageUsers = true;
+                        apiUser.Permissions.CanManageUsers = true;
                         break;
                     case Roles.PermissionsManager:
-                        apiUser.GametekiPermissions.CanManagePermissions = true;
+                        apiUser.Permissions.CanManagePermissions = true;
                         break;
                     case Roles.ChatManager:
-                        apiUser.GametekiPermissions.CanModerateChat = true;
+                        apiUser.Permissions.CanModerateChat = true;
                         break;
                     case Roles.GameManager:
-                        apiUser.GametekiPermissions.CanManageGames = true;
+                        apiUser.Permissions.CanManageGames = true;
                         break;
                     case Roles.NewsManager:
-                        apiUser.GametekiPermissions.CanEditNews = true;
+                        apiUser.Permissions.CanEditNews = true;
                         break;
                     case Roles.NodeManager:
-                        apiUser.GametekiPermissions.CanManageNodes = true;
+                        apiUser.Permissions.CanManageNodes = true;
                         break;
                     case Roles.Admin:
-                        apiUser.GametekiPermissions.IsAdmin = true;
+                        apiUser.Permissions.IsAdmin = true;
                         break;
                     case Roles.Contributor:
-                        apiUser.GametekiPermissions.IsContributor = true;
+                        apiUser.Permissions.IsContributor = true;
                         break;
                     case Roles.Supporter:
-                        apiUser.GametekiPermissions.IsSupporter = true;
+                        apiUser.Permissions.IsSupporter = true;
                         break;
                 }
             }

@@ -340,7 +340,7 @@
 
         private async Task<bool> UpdatePermissionsInternalAsync(GametekiUser user, GametekiPermissions newPermissions)
         {
-            var existingPermissions = user.ToApiUser().GametekiPermissions;
+            var existingPermissions = user.ToApiUser().Permissions;
             var toAdd = new List<string>();
             var toRemove = new List<string>();
 

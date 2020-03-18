@@ -52,9 +52,9 @@ namespace CrimsonDev.Gameteki.Api.Services
             return true;
         }
 
-        public ValueTask<News> FindNewsByIdAsync(int newsId)
+        public Task<News> FindNewsByIdAsync(int newsId)
         {
-            return context.News.FindAsync(newsId);
+            return context.News.Include(n => n.Poster).FirstOrDefaultAsync(n => n.Id == newsId);
         }
 
         public async Task<bool> DeleteNewsAsync(News newsItem)

@@ -410,7 +410,7 @@
             await userService.UpdateUserAsync().ConfigureAwait(false);
             var patreonStatus = await patreonService.GetUserStatus(user.PatreonToken.Token).ConfigureAwait(false);
 
-            var permissions = user.ToApiUser().GametekiPermissions;
+            var permissions = user.ToApiUser().Permissions;
 
             permissions.IsSupporter = patreonStatus == PatreonStatus.Pledged;
 

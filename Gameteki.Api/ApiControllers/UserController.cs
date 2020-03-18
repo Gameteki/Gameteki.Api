@@ -67,7 +67,7 @@
                 return this.SuccessResponse();
             }
 
-            var permissionsResult = await userService.UpdatePermissionsAsync(user, request.GametekiPermissions).ConfigureAwait(false);
+            var permissionsResult = await userService.UpdatePermissionsAsync(user, request.Permissions).ConfigureAwait(false);
             if (!permissionsResult)
             {
                 return this.FailureResponse(t["An error occurred saving the user details"]);
